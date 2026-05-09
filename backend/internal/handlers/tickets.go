@@ -6,12 +6,28 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/gin-gonic/gin"
 	"meddoc/internal/middleware"
 	"meddoc/internal/models"
+
+	"github.com/gin-gonic/gin"
 )
 
-// ─── User Ticket Handlers ────────────────────────────────────────────────────
+// ─── helpers ──────────────────────────────────────────────────────────────────
+
+func parseID(c *gin.Context) int64 {
+	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	return id
+}
+
+// loadMessages загружает сообщения и кладёт в ticket.Messages
+func (h *Handler) loadMessages(c *gin.Context, t *models.Ticket) {
+	msgs, err := h.messages.ListByTicket(c.Request.Context(), t.ID)
+	if err == nil {
+		t.Messages = msgs
+	}
+}
+
+// ─── User: список и просмотр ──────────────────────────────────────────────────
 
 func (h *Handler) ListTickets(c *gin.Context) {
 	id := middleware.GetUserID(c)
@@ -23,13 +39,29 @@ func (h *Handler) ListTickets(c *gin.Context) {
 	c.JSON(http.StatusOK, tickets)
 }
 
+func (h *Handler) GetTicket(c *gin.Context) {
+	id := parseID(c)
+	t, err := h.tickets.GetByID(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "ticket not found"})
+		return
+	}
+	if t.UserID != middleware.GetUserID(c) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
+		return
+	}
+	h.loadMessages(c, t)
+	c.JSON(http.StatusOK, t)
+}
+
+// ─── User: создание ───────────────────────────────────────────────────────────
+
 func (h *Handler) CreateTicket(c *gin.Context) {
 	var req models.CreateTicketRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
 	t := &models.Ticket{
 		UserID:          middleware.GetUserID(c),
 		FirstName:       req.FirstName,
@@ -44,7 +76,6 @@ func (h *Handler) CreateTicket(c *gin.Context) {
 		Priority:        req.Priority,
 		Status:          models.StatusOpen,
 	}
-
 	if err := h.tickets.Create(c.Request.Context(), t); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -52,23 +83,10 @@ func (h *Handler) CreateTicket(c *gin.Context) {
 	c.JSON(http.StatusCreated, t)
 }
 
-func (h *Handler) GetTicket(c *gin.Context) {
-	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
-	t, err := h.tickets.GetByID(c.Request.Context(), id)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "ticket not found"})
-		return
-	}
-	// Users can only see their own tickets
-	if t.UserID != middleware.GetUserID(c) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
-		return
-	}
-	c.JSON(http.StatusOK, t)
-}
+// ─── User: редактирование полей заявки ───────────────────────────────────────
 
 func (h *Handler) UpdateTicket(c *gin.Context) {
-	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	id := parseID(c)
 	t, err := h.tickets.GetByID(c.Request.Context(), id)
 	if err != nil || t.UserID != middleware.GetUserID(c) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
@@ -78,7 +96,6 @@ func (h *Handler) UpdateTicket(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "cannot edit closed/cancelled ticket"})
 		return
 	}
-
 	var req models.UpdateTicketRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -91,8 +108,53 @@ func (h *Handler) UpdateTicket(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "updated"})
 }
 
+// ─── User: ответное сообщение в чате заявки ───────────────────────────────────
+
+func (h *Handler) UserReply(c *gin.Context) {
+	id := parseID(c)
+
+	// Проверяем что заявка принадлежит пользователю
+	t, err := h.tickets.GetByID(c.Request.Context(), id)
+	if err != nil || t.UserID != middleware.GetUserID(c) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
+		return
+	}
+	if t.Status == models.StatusClosed || t.Status == models.StatusCancelled {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "заявление закрыто, переписка недоступна"})
+		return
+	}
+
+	var req models.AddUserReplyRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Получаем имя пользователя для отображения
+	userID := middleware.GetUserID(c)
+	u, err := h.users.GetByID(c.Request.Context(), userID)
+	authorName := "Пользователь"
+	if err == nil {
+		authorName = u.FirstName + " " + u.LastName
+	}
+
+	msg := &models.TicketMessage{
+		TicketID:   id,
+		Author:     models.AuthorUser,
+		AuthorName: authorName,
+		Text:       req.Text,
+	}
+	if err := h.messages.Add(c.Request.Context(), msg); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusCreated, msg)
+}
+
+// ─── User: отмена и закрытие ──────────────────────────────────────────────────
+
 func (h *Handler) CancelTicket(c *gin.Context) {
-	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	id := parseID(c)
 	t, err := h.tickets.GetByID(c.Request.Context(), id)
 	if err != nil || t.UserID != middleware.GetUserID(c) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
@@ -103,7 +165,7 @@ func (h *Handler) CancelTicket(c *gin.Context) {
 }
 
 func (h *Handler) CloseTicket(c *gin.Context) {
-	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	id := parseID(c)
 	t, err := h.tickets.GetByID(c.Request.Context(), id)
 	if err != nil || t.UserID != middleware.GetUserID(c) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
@@ -113,7 +175,7 @@ func (h *Handler) CloseTicket(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "closed"})
 }
 
-// ─── Admin Ticket Handlers ───────────────────────────────────────────────────
+// ─── Admin: список всех заявок ────────────────────────────────────────────────
 
 func (h *Handler) AdminListTickets(c *gin.Context) {
 	f := models.TicketFilter{
@@ -133,8 +195,62 @@ func (h *Handler) AdminListTickets(c *gin.Context) {
 	c.JSON(http.StatusOK, tickets)
 }
 
+// ─── Admin: получить заявку с перепиской ──────────────────────────────────────
+
+func (h *Handler) AdminGetTicket(c *gin.Context) {
+	id := parseID(c)
+	t, err := h.tickets.GetByID(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+		return
+	}
+	h.loadMessages(c, t)
+	c.JSON(http.StatusOK, t)
+}
+
+// ─── Admin: ответ в переписке ─────────────────────────────────────────────────
+
+func (h *Handler) AddComment(c *gin.Context) {
+	id := parseID(c)
+	t, err := h.tickets.GetByID(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+		return
+	}
+
+	var req models.AddCommentRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Обновляем поле admin_comment (для обратной совместимости)
+	if err := h.tickets.AddComment(c.Request.Context(), id, req.Comment); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Также сохраняем как сообщение в переписке
+	msg := &models.TicketMessage{
+		TicketID:   id,
+		Author:     models.AuthorAdmin,
+		AuthorName: "IT-отдел",
+		Text:       req.Comment,
+	}
+	h.messages.Add(c.Request.Context(), msg)
+
+	// Меняем статус на "в работе" если был "открыт"
+	if t.Status == models.StatusOpen {
+		h.tickets.SetStatus(c.Request.Context(), id, models.StatusInProgress)
+	}
+
+	c.JSON(http.StatusCreated, msg)
+}
+
+// ─── Admin: удалить / закрыть ─────────────────────────────────────────────────
+
 func (h *Handler) AdminDeleteTicket(c *gin.Context) {
-	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	id := parseID(c)
 	if err := h.tickets.Delete(c.Request.Context(), id); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -143,23 +259,9 @@ func (h *Handler) AdminDeleteTicket(c *gin.Context) {
 }
 
 func (h *Handler) AdminCloseTicket(c *gin.Context) {
-	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	id := parseID(c)
 	h.tickets.SetStatus(c.Request.Context(), id, models.StatusClosed)
 	c.JSON(http.StatusOK, gin.H{"message": "closed"})
-}
-
-func (h *Handler) AddComment(c *gin.Context) {
-	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
-	var req models.AddCommentRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-	if err := h.tickets.AddComment(c.Request.Context(), id, req.Comment); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"message": "comment added"})
 }
 
 func (h *Handler) GetIPLogs(c *gin.Context) {
@@ -171,10 +273,10 @@ func (h *Handler) GetIPLogs(c *gin.Context) {
 	c.JSON(http.StatusOK, logs)
 }
 
-// ─── Export ──────────────────────────────────────────────────────────────────
+// ─── Export ───────────────────────────────────────────────────────────────────
 
 func (h *Handler) ExportTickets(c *gin.Context) {
-	format := c.Query("format") // xml | xlsx
+	format := c.Query("format")
 	f := models.TicketFilter{
 		Division: c.Query("division"),
 		Priority: c.Query("priority"),
@@ -187,28 +289,17 @@ func (h *Handler) ExportTickets(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
-	switch format {
-	case "xml":
+	if format == "xml" {
 		exportXML(c, tickets)
-	default:
-		// For XLSX/DOCX: return JSON and let frontend handle download
-		// In production add unioffice/excelize here
-		c.JSON(http.StatusOK, gin.H{
-			"format":  format,
-			"tickets": tickets,
-			"message": "use frontend export library for docx/xlsx",
-		})
+		return
 	}
+	c.JSON(http.StatusOK, gin.H{"format": format, "tickets": tickets})
 }
-
-// ─── XML Export ──────────────────────────────────────────────────────────────
 
 type xmlTickets struct {
-	XMLName xml.Name     `xml:"Tickets"`
-	Items   []xmlTicket  `xml:"Ticket"`
+	XMLName xml.Name    `xml:"Tickets"`
+	Items   []xmlTicket `xml:"Ticket"`
 }
-
 type xmlTicket struct {
 	ID          int64  `xml:"ID"`
 	FirstName   string `xml:"FirstName"`
@@ -224,14 +315,10 @@ func exportXML(c *gin.Context, tickets []*models.Ticket) {
 	data := xmlTickets{}
 	for _, t := range tickets {
 		data.Items = append(data.Items, xmlTicket{
-			ID:          t.ID,
-			FirstName:   t.FirstName,
-			LastName:    t.LastName,
-			Division:    t.Division,
-			Description: t.Description,
-			Priority:    string(t.Priority),
-			Status:      string(t.Status),
-			CreatedAt:   t.CreatedAt.Format("2006-01-02 15:04:05"),
+			ID: t.ID, FirstName: t.FirstName, LastName: t.LastName,
+			Division: t.Division, Description: t.Description,
+			Priority: string(t.Priority), Status: string(t.Status),
+			CreatedAt: t.CreatedAt.Format("2006-01-02 15:04:05"),
 		})
 	}
 	out, err := xml.MarshalIndent(data, "", "  ")

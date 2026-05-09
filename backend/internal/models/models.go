@@ -26,7 +26,7 @@ const (
 	StatusCancelled  TicketStatus = "cancelled"
 )
 
-// ─── User ────────────────────────────────────────────────────────────────────
+// ─── User ─────────────────────────────────────────────────────────────────────
 
 type User struct {
 	ID           int64     `json:"id"`
@@ -52,8 +52,8 @@ type LoginRequest struct {
 
 type AdminLoginRequest struct {
 	Login     string `json:"login"      binding:"required"`
-	Password  string `json:"password"   binding:"required,min=10"`
-	SecretKey string `json:"secret_key" binding:"required,min=8"`
+	Password  string `json:"password"   binding:"required,min=6"`
+	SecretKey string `json:"secret_key" binding:"required,min=1"`
 }
 
 type UpdateProfileRequest struct {
@@ -63,26 +63,45 @@ type UpdateProfileRequest struct {
 	Password  string `json:"password"`
 }
 
-// ─── Ticket ──────────────────────────────────────────────────────────────────
+// ─── Ticket Message (переписка внутри заявки) ─────────────────────────────────
+
+type MessageAuthor string
+
+const (
+	AuthorUser  MessageAuthor = "user"
+	AuthorAdmin MessageAuthor = "admin"
+)
+
+type TicketMessage struct {
+	ID         int64         `json:"id"`
+	TicketID   int64         `json:"ticket_id"`
+	Author     MessageAuthor `json:"author"`
+	AuthorName string        `json:"author_name"`
+	Text       string        `json:"text"`
+	CreatedAt  time.Time     `json:"created_at"`
+}
+
+// ─── Ticket ───────────────────────────────────────────────────────────────────
 
 type Ticket struct {
-	ID              int64        `json:"id"`
-	UserID          int64        `json:"user_id"`
-	FirstName       string       `json:"first_name"`
-	LastName        string       `json:"last_name"`
-	Phone           string       `json:"phone"`
-	Position        string       `json:"position"`
-	Room            string       `json:"room"`
-	Division        string       `json:"division"`
-	Description     string       `json:"description"`
-	InventoryNumber string       `json:"inventory_number"`
-	IPAddress       string       `json:"ip_address"`
-	Priority        Priority     `json:"priority"`
-	Status          TicketStatus `json:"status"`
-	AdminComment    string       `json:"admin_comment"`
-	AutoEscalated   bool         `json:"auto_escalated"`
-	CreatedAt       time.Time    `json:"created_at"`
-	UpdatedAt       time.Time    `json:"updated_at"`
+	ID              int64            `json:"id"`
+	UserID          int64            `json:"user_id"`
+	FirstName       string           `json:"first_name"`
+	LastName        string           `json:"last_name"`
+	Phone           string           `json:"phone"`
+	Position        string           `json:"position"`
+	Room            string           `json:"room"`
+	Division        string           `json:"division"`
+	Description     string           `json:"description"`
+	InventoryNumber string           `json:"inventory_number"`
+	IPAddress       string           `json:"ip_address"`
+	Priority        Priority         `json:"priority"`
+	Status          TicketStatus     `json:"status"`
+	AdminComment    string           `json:"admin_comment"`
+	AutoEscalated   bool             `json:"auto_escalated"`
+	Messages        []*TicketMessage `json:"messages,omitempty"`
+	CreatedAt       time.Time        `json:"created_at"`
+	UpdatedAt       time.Time        `json:"updated_at"`
 }
 
 type CreateTicketRequest struct {
@@ -112,6 +131,10 @@ type AddCommentRequest struct {
 	Comment string `json:"comment" binding:"required,min=1"`
 }
 
+type AddUserReplyRequest struct {
+	Text string `json:"text" binding:"required,min=1"`
+}
+
 type TicketFilter struct {
 	Division  string
 	Priority  string
@@ -122,7 +145,7 @@ type TicketFilter struct {
 	SortOrder string
 }
 
-// ─── Auth / IP Log ───────────────────────────────────────────────────────────
+// ─── IP Log ───────────────────────────────────────────────────────────────────
 
 type IPLog struct {
 	ID        int64     `json:"id"`

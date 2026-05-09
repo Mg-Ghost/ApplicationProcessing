@@ -34,22 +34,24 @@ export const profileApi = {
 
 // ─── Tickets (user) ───────────────────────────────────────────────────────
 export const ticketsApi = {
-  list:   ()       => api.get('/tickets'),
-  get:    id       => api.get(`/tickets/${id}`),
-  create: d        => api.post('/tickets', d),
-  update: (id, d)  => api.put(`/tickets/${id}`, d),
-  cancel: id       => api.patch(`/tickets/${id}/cancel`),
-  close:  id       => api.patch(`/tickets/${id}/close`),
+  list:      ()        => api.get('/tickets'),
+  get:       id        => api.get(`/tickets/${id}`),
+  create:    d         => api.post('/tickets', d),
+  update:    (id, d)   => api.put(`/tickets/${id}`, d),
+  cancel:    id        => api.patch(`/tickets/${id}/cancel`),
+  close:     id        => api.patch(`/tickets/${id}/close`),
+  reply:     (id, d)   => api.post(`/tickets/${id}/reply`, d),  // ответ пользователя
 }
 
 // ─── Admin ────────────────────────────────────────────────────────────────
 export const adminApi = {
-  listTickets:  params => api.get('/admin/tickets', { params }),
-  deleteTicket: id     => api.delete(`/admin/tickets/${id}`),
-  closeTicket:  id     => api.patch(`/admin/tickets/${id}/close`),
-  addComment:   (id,d) => api.post(`/admin/tickets/${id}/comment`, d),
-  export:       params => api.get('/admin/tickets/export', { params }),
-  ipLogs:       ()     => api.get('/admin/ip-logs'),
+  listTickets:  params  => api.get('/admin/tickets', { params }),
+  getTicket:    id      => api.get(`/admin/tickets/${id}`),
+  deleteTicket: id      => api.delete(`/admin/tickets/${id}`),
+  closeTicket:  id      => api.patch(`/admin/tickets/${id}/close`),
+  addComment:   (id, d) => api.post(`/admin/tickets/${id}/comment`, d),
+  export:       params  => api.get('/admin/tickets/export', { params }),
+  ipLogs:       ()      => api.get('/admin/ip-logs'),
 }
 
 export default api

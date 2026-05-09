@@ -71,16 +71,18 @@ func main() {
 			tickets.PUT("/:id", h.UpdateTicket)
 			tickets.PATCH("/:id/cancel", h.CancelTicket)
 			tickets.PATCH("/:id/close", h.CloseTicket)
+			tickets.POST("/:id/reply", h.UserReply) 
 		}
 
 		admin := api.Group("/admin")
 		admin.Use(middleware.AuthRequired(), middleware.AdminRequired())
 		{
 			admin.GET("/tickets", h.AdminListTickets)
+			admin.GET("/tickets/export", h.ExportTickets)
+			admin.GET("/tickets/:id", h.AdminGetTicket)
 			admin.DELETE("/tickets/:id", h.AdminDeleteTicket)
 			admin.PATCH("/tickets/:id/close", h.AdminCloseTicket)
 			admin.POST("/tickets/:id/comment", h.AddComment)
-			admin.GET("/tickets/export", h.ExportTickets)
 			admin.GET("/ip-logs", h.GetIPLogs)
 		}
 	}

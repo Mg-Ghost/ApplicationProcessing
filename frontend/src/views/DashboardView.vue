@@ -53,7 +53,7 @@
       <table>
         <thead><tr>
           <th>#</th><th>Описание</th><th>Подразделение</th><th>Дата</th>
-          <th>Приоритет</th><th>Статус</th><th>Ответ</th><th>Действия</th>
+          <th>Приоритет</th><th>Статус</th><th>Переписка</th><th>Действия</th>
         </tr></thead>
         <tbody>
           <tr v-for="t in filtered" :key="t.id">
@@ -63,11 +63,16 @@
             <td>{{ formatDate(t.created_at) }}</td>
             <td><span :class="['badge', `badge-${t.priority}`]">{{ priorityLabel(t.priority) }}</span></td>
             <td><span :class="['badge', `badge-${t.status}`]">{{ statusLabel(t.status) }}</span></td>
-            <td style="max-width:160px;font-size:12px;color:var(--text-muted);">{{ t.admin_comment || '—' }}</td>
+            <td>
+                <router-link v-if="t.status === 'in_progress' || t.admin_comment" :to="`/tickets/${t.id}/edit`" class="btn btn-primary btn-sm">
+                  💬 Переписка
+                </router-link>
+                <span v-else style="font-size:12px;color:var(--text-muted);">—</span>
+              </td>
             <td>
               <div style="display:flex;gap:5px;flex-wrap:wrap;">
                 <router-link
-                  v-if="t.status === 'open'"
+                  v-if="t.status === 'open' || t.status === 'in_progress'"
                   :to="`/tickets/${t.id}/edit`"
                   class="btn btn-ghost btn-sm">✏️ Изменить</router-link>
                 <button

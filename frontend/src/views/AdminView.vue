@@ -1,6 +1,6 @@
 <template>
   <div class="page">
-    <!-- Admin header -->
+    <!-- Header -->
     <div class="admin-header">
       <div>
         <h1>Панель администратора</h1>
@@ -16,30 +16,24 @@
     <div class="stats-row">
       <div class="stat-card"><div class="num">{{ tickets.length }}</div><div class="lbl">Всего заявлений</div></div>
       <div class="stat-card">
-        <div class="num" style="background:var(--grad-danger);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">
-          {{ count('priority','high') }}
-        </div>
+        <div class="num" style="background:var(--grad-danger);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">{{ count('priority','high') }}</div>
         <div class="lbl">Высокий приоритет</div>
       </div>
       <div class="stat-card">
-        <div class="num" style="background:var(--grad-warn);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">
-          {{ count('status','open') }}
-        </div>
+        <div class="num" style="background:var(--grad-warn);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">{{ count('status','open') }}</div>
         <div class="lbl">Открытые</div>
       </div>
       <div class="stat-card">
-        <div class="num" style="background:var(--grad-success);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">
-          {{ count('status','closed') }}
-        </div>
+        <div class="num" style="background:var(--grad-success);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">{{ count('status','closed') }}</div>
         <div class="lbl">Закрытые</div>
       </div>
     </div>
 
     <!-- Filters -->
     <div class="filter-bar">
-      <select v-model="filter.division" @change="load"><option value="">Все подразделения</option><option v-for="d in divisions" :key="d">{{ d }}</option></select>
-      <select v-model="filter.priority" @change="load"><option value="">Все приоритеты</option><option value="high">Высокий</option><option value="medium">Средний</option><option value="low">Низкий</option></select>
-      <select v-model="filter.status"   @change="load"><option value="">Все статусы</option><option value="open">Открыто</option><option value="in_progress">На рассмотрении</option><option value="closed">Закрыто</option><option value="cancelled">Отменено</option></select>
+      <select v-model="filter.division"   @change="load"><option value="">Все подразделения</option><option v-for="d in divisions" :key="d">{{ d }}</option></select>
+      <select v-model="filter.priority"   @change="load"><option value="">Все приоритеты</option><option value="high">Высокий</option><option value="medium">Средний</option><option value="low">Низкий</option></select>
+      <select v-model="filter.status"     @change="load"><option value="">Все статусы</option><option value="open">Открыто</option><option value="in_progress">На рассмотрении</option><option value="closed">Закрыто</option><option value="cancelled">Отменено</option></select>
       <input type="date" v-model="filter.date_from" @change="load">
       <input type="date" v-model="filter.date_to"   @change="load">
       <select v-model="filter.sort_by"    @change="load"><option value="">Сортировка</option><option value="created_at">Дата</option><option value="priority">Приоритет</option><option value="division">Подразделение</option></select>
@@ -50,9 +44,7 @@
     <!-- Export -->
     <div class="export-row">
       <span style="font-size:12px;color:var(--text-muted);align-self:center;">Экспорт:</span>
-      <button class="btn btn-ghost btn-sm" @click="exportAs('xml')">⬇ XML</button>
-      <button class="btn btn-ghost btn-sm" @click="exportAs('xlsx')">⬇ XLSX</button>
-      <button class="btn btn-ghost btn-sm" @click="exportAs('docx')">⬇ DOCX</button>
+      <button class="btn btn-ghost btn-sm" @click="doExportXLSX">⬇ XLSX</button>
     </div>
 
     <!-- Table -->
@@ -66,19 +58,21 @@
           <tr v-for="t in tickets" :key="t.id">
             <td><strong>{{ t.id }}</strong></td>
             <td>{{ t.first_name }} {{ t.last_name }}</td>
-            <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" :title="t.description">{{ t.description }}</td>
+            <td class="desc-cell" :title="t.description">{{ t.description }}</td>
             <td>{{ t.division }}</td>
             <td>{{ fmt(t.created_at) }}</td>
             <td>
               <span :class="['badge',`badge-${t.priority}`]">{{ plabel(t.priority) }}</span>
-              <span v-if="t.auto_escalated" title="Автоматически повышен" style="margin-left:4px;font-size:11px;">⚡</span>
+              <span v-if="t.auto_escalated" title="Автоэскалация" style="margin-left:4px;">⚡</span>
             </td>
             <td><span :class="['badge',`badge-${t.status}`]">{{ slabel(t.status) }}</span></td>
             <td>
               <div style="display:flex;gap:4px;flex-wrap:wrap;">
-                <button class="btn btn-primary btn-sm" @click="openComment(t)">💬</button>
-                <button v-if="t.status !== 'closed'" class="btn btn-ghost btn-sm" @click="closeT(t.id)">✓</button>
-                <button class="btn btn-danger btn-sm" @click="deleteT(t.id)">🗑</button>
+                <button class="btn btn-primary btn-sm" @click="openChat(t)" title="Открыть переписку">
+                  💬 Ответить
+                </button>
+                <button v-if="t.status !== 'closed'" class="btn btn-ghost btn-sm" @click="closeT(t.id)" title="Закрыть заявление">✓</button>
+                <button class="btn btn-danger btn-sm" @click="deleteT(t.id)" title="Удалить">🗑</button>
               </div>
             </td>
           </tr>
@@ -89,26 +83,42 @@
       </table>
     </div>
 
-    <!-- Comment modal -->
-    <div v-if="commentModal" class="modal-overlay" @click.self="commentModal=false">
+    <!-- Chat modal -->
+    <div v-if="chatModal" class="modal-overlay" @click.self="chatModal=false">
       <div class="card modal-box">
-        <h3 class="card-title">Комментарий к заявлению #{{ activeTicket?.id }}</h3>
-        <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">
-          {{ activeTicket?.first_name }} {{ activeTicket?.last_name }} · {{ activeTicket?.division }}
+        <div class="modal-top">
+          <div>
+            <h3 class="card-title" style="margin:0;font-size:17px;">Заявление #{{ activeTicket?.id }}</h3>
+            <div class="ticket-info-row">
+              <span>👤 {{ activeTicket?.first_name }} {{ activeTicket?.last_name }}</span>
+              <span>🏥 {{ activeTicket?.division }}</span>
+              <span>🚪 {{ activeTicket?.room }}</span>
+            </div>
+          </div>
+          <button class="btn btn-ghost btn-sm" @click="chatModal=false">✕</button>
         </div>
-        <div style="background:var(--surface2);border-radius:10px;padding:12px;font-size:13px;margin-bottom:14px;">
-          {{ activeTicket?.description }}
+
+        <div class="ticket-desc">{{ activeTicket?.description }}</div>
+
+        <div style="margin-bottom:8px;display:flex;gap:8px;flex-wrap:wrap;">
+          <span :class="['badge', `badge-${activeTicket?.priority}`]">{{ plabel(activeTicket?.priority) }}</span>
+          <span :class="['badge', `badge-${activeTicket?.status}`]">{{ slabel(activeTicket?.status) }}</span>
+          <span v-if="activeTicket?.inventory_number" style="font-size:12px;color:var(--text-muted);">
+            🏷 {{ activeTicket.inventory_number }}
+          </span>
+          <span v-if="activeTicket?.ip_address" style="font-size:12px;color:var(--text-muted);">
+            🌐 {{ activeTicket.ip_address }}
+          </span>
         </div>
-        <div v-if="activeTicket?.admin_comment" class="comment-existing">
-          Текущий ответ: {{ activeTicket.admin_comment }}
-        </div>
-        <div class="field"><label>Новый комментарий</label>
-          <textarea v-model="commentText" placeholder="Введите ответ специалиста..."></textarea>
-        </div>
-        <div style="display:flex;gap:10px;">
-          <button class="btn btn-primary" @click="saveComment">Отправить ответ</button>
-          <button class="btn btn-ghost" @click="commentModal=false">Отмена</button>
-        </div>
+
+        <TicketChat
+          v-if="activeTicket"
+          :ticket-id="activeTicket.id"
+          :messages="activeTicket.messages || []"
+          :status="activeTicket.status"
+          :is-admin="true"
+          @sent="onAdminSent"
+        />
       </div>
     </div>
 
@@ -134,19 +144,20 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { adminApi } from '@/api'
+import TicketChat from '@/components/shared/TicketChat.vue'
 
-const tickets = ref([])
-const ipLogs  = ref([])
-const loading = ref(true)
-
-const filter = reactive({ division:'', priority:'', status:'', date_from:'', date_to:'', sort_by:'', sort_order:'DESC' })
-
-const commentModal = ref(false)
+const tickets   = ref([])
+const ipLogs    = ref([])
+const loading   = ref(true)
+const chatModal = ref(false)
 const activeTicket = ref(null)
-const commentText  = ref('')
-
-const lastIP   = ref('—')
+const lastIP    = ref('—')
 const loginTime = ref('—')
+
+const filter = reactive({
+  division:'', priority:'', status:'',
+  date_from:'', date_to:'', sort_by:'', sort_order:'DESC'
+})
 
 const divisions = [
   'ГКБ №1 — Хирургия', 'ГКБ №1 — Терапия', 'ГКБ №1 — Кардиология',
@@ -177,6 +188,25 @@ function resetFilter() {
   load()
 }
 
+async function openChat(t) {
+  try {
+    const r = await adminApi.getTicket(t.id)
+    activeTicket.value = r.data
+    chatModal.value    = true
+  } catch(e) {
+    alert('Ошибка загрузки заявки: ' + (e.response?.data?.error || e.message))
+  }
+}
+
+async function onAdminSent() {
+  // Перезагружаем заявку чтобы показать новое сообщение
+  if (activeTicket.value) {
+    const r = await adminApi.getTicket(activeTicket.value.id)
+    activeTicket.value = r.data
+  }
+  await load()
+}
+
 async function closeT(id) {
   if (!confirm('Закрыть заявление?')) return
   await adminApi.closeTicket(id)
@@ -189,31 +219,9 @@ async function deleteT(id) {
   await load()
 }
 
-function openComment(t) {
-  activeTicket.value = t
-  commentText.value  = t.admin_comment || ''
-  commentModal.value = true
-}
-
-async function saveComment() {
-  if (!commentText.value.trim()) return
-  await adminApi.addComment(activeTicket.value.id, { comment: commentText.value })
-  commentModal.value = false
-  await load()
-}
-
-async function exportAs(fmt) {
-  if (fmt === 'xml') {
-    const params = { format: 'xml', ...filter }
-    const url = '/api/admin/tickets/export?' + new URLSearchParams(params)
-    window.open(url, '_blank')
-    return
-  }
-  // XLSX / DOCX: client-side via api data
+async function doExportXLSX() {
   const r = await adminApi.listTickets(filter)
-  const data = r.data || []
-  if (fmt === 'xlsx') exportXLSX(data)
-  if (fmt === 'docx') alert('DOCX экспорт: подключите библиотеку docx в production')
+  exportXLSX(r.data || [])
 }
 
 function exportXLSX(data) {
@@ -221,8 +229,9 @@ function exportXLSX(data) {
     const ws = XLSX.utils.json_to_sheet(data.map(t => ({
       '№': t.id, 'Имя': t.first_name, 'Фамилия': t.last_name,
       'Подразделение': t.division, 'Описание': t.description,
-      'Приоритет': t.priority, 'Статус': t.status,
-      'Дата': fmt2(t.created_at), 'Комментарий': t.admin_comment
+      'Приоритет': plabel(t.priority), 'Статус': slabel(t.status),
+      'Дата': new Date(t.created_at).toLocaleString('ru-RU'),
+      'Комментарий ИТ': t.admin_comment,
     })))
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Заявления')
@@ -232,7 +241,6 @@ function exportXLSX(data) {
 
 function count(field, val) { return tickets.value.filter(t => t[field] === val).length }
 function fmt(d)     { return new Date(d).toLocaleDateString('ru-RU') }
-function fmt2(d)    { return new Date(d).toLocaleString('ru-RU') }
 function fmtTime(d) { return new Date(d).toLocaleTimeString('ru-RU', { hour:'2-digit', minute:'2-digit' }) }
 function plabel(p)  { return { high:'Высокий', medium:'Средний', low:'Низкий' }[p] || p }
 function slabel(s)  { return { open:'Открыто', in_progress:'На рассмотрении', closed:'Закрыто', cancelled:'Отменено' }[s] || s }
@@ -261,14 +269,29 @@ onMounted(() => { load(); loadIPLogs() })
 
 .export-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; align-items: center; }
 
+.desc-cell { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Modal */
 .modal-overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,.35);
-  display: flex; align-items: center; justify-content: center; z-index: 999; padding: 20px;
+  position: fixed; inset: 0; background: rgba(0,0,0,.4);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 999; padding: 20px;
 }
-.modal-box { max-width: 520px; width: 100%; }
-.comment-existing {
-  background: var(--surface2); border-left: 3px solid var(--accent);
-  border-radius: 8px; padding: 10px 12px; font-size: 12px;
-  color: var(--text-muted); margin-bottom: 12px;
+.modal-box {
+  max-width: 580px; width: 100%;
+  max-height: 90vh; overflow-y: auto;
+}
+.modal-top {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  margin-bottom: 12px; gap: 12px;
+}
+.ticket-info-row {
+  display: flex; flex-wrap: wrap; gap: 10px;
+  font-size: 12px; color: var(--text-muted); margin-top: 6px;
+}
+.ticket-desc {
+  background: var(--surface2); border-radius: 10px;
+  padding: 12px; font-size: 13px; margin-bottom: 12px;
+  color: var(--text); line-height: 1.5;
 }
 </style>
