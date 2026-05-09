@@ -1,0 +1,47 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: meddoc_user
+      POSTGRES_PASSWORD: supersecret
+      POSTGRES_DB: meddoc_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: meddoc_user
+      DB_PASSWORD: supersecret
+      DB_NAME: meddoc_db
+      JWT_SECRET: change_me_in_production_min_32_chars
+      ADMIN_SECRET_KEY: admin_secret_8ch
+      GIN_MODE: release
+      SERVER_PORT: 8080
+    depends_on:
+      - postgres
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+volumes:
+  pg_data:
