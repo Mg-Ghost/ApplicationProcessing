@@ -14,16 +14,23 @@
 
     <!-- Stats -->
     <div class="stats-row">
-      <div class="stat-card"><div class="num">{{ tickets.length }}</div><div class="lbl">Всего заявлений</div></div>
-      <div class="stat-card">
-        <div class="num" style="background:var(--grad-danger);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">{{ count('priority','high') }}</div>
-        <div class="lbl">Высокий приоритет</div>
+      <div class="stat-card clickable" @click="setFilter('')">
+        <div class="num">{{ tickets.length }}</div>
+        <div class="lbl">Всего заявлений</div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card clickable" @click="setFilter('open')" :class="{active: filter.status==='open'}">
         <div class="num" style="background:var(--grad-warn);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">{{ count('status','open') }}</div>
         <div class="lbl">Открытые</div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card clickable" @click="setFilter('in_progress')" :class="{active: filter.status==='in_progress'}">
+        <div class="num" style="background:linear-gradient(135deg,#7c5cfc,#5cbbfc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">{{ count('status','in_progress') }}</div>
+        <div class="lbl">На рассмотрении</div>
+      </div>
+      <div class="stat-card clickable" @click="setFilter('high_priority')" :class="{active: filter.priority==='high'}">
+        <div class="num" style="background:var(--grad-danger);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">{{ count('priority','high') }}</div>
+        <div class="lbl">Высокий приоритет</div>
+      </div>
+      <div class="stat-card clickable" @click="setFilter('closed')" :class="{active: filter.status==='closed'}">
         <div class="num" style="background:var(--grad-success);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">{{ count('status','closed') }}</div>
         <div class="lbl">Закрытые</div>
       </div>
@@ -56,7 +63,7 @@
         </tr></thead>
         <tbody>
           <tr v-for="t in tickets" :key="t.id">
-            <td><strong>{{ t.id }}</strong></td>
+            <td><router-link :to="`/tickets/${t.id}`" style="font-weight:700;color:var(--accent);text-decoration:none;">#{{ t.id }}</router-link></td>
             <td>{{ t.first_name }} {{ t.last_name }}</td>
             <td class="desc-cell" :title="t.description">{{ t.description }}</td>
             <td>{{ t.division }}</td>
@@ -68,10 +75,9 @@
             <td><span :class="['badge',`badge-${t.status}`]">{{ slabel(t.status) }}</span></td>
             <td>
               <div style="display:flex;gap:4px;flex-wrap:wrap;">
-                <button class="btn btn-primary btn-sm" @click="openChat(t)" title="Открыть переписку">
-                  💬 Ответить
-                </button>
-                <button v-if="t.status !== 'closed'" class="btn btn-ghost btn-sm" @click="closeT(t.id)" title="Закрыть заявление">✓</button>
+                <router-link :to="`/tickets/${t.id}`" class="btn btn-ghost btn-sm" title="Просмотр">👁</router-link>
+                <button class="btn btn-primary btn-sm" @click="openChat(t)" title="Открыть переписку">💬</button>
+                <button v-if="t.status !== 'closed'" class="btn btn-ghost btn-sm" @click="closeT(t.id)" title="Закрыть">✓</button>
                 <button class="btn btn-danger btn-sm" @click="deleteT(t.id)" title="Удалить">🗑</button>
               </div>
             </td>
@@ -183,6 +189,17 @@ async function loadIPLogs() {
   }
 }
 
+function setFilter(val) {
+  // Сбрасываем все фильтры, ставим нужный
+  Object.assign(filter, { division:'', priority:'', status:'', date_from:'', date_to:'', sort_by:'', sort_order:'DESC' })
+  if (val === 'high_priority') {
+    filter.priority = 'high'
+  } else if (val) {
+    filter.status = val
+  }
+  load()
+}
+
 function resetFilter() {
   Object.assign(filter, { division:'', priority:'', status:'', date_from:'', date_to:'', sort_by:'', sort_order:'DESC' })
   load()
@@ -270,6 +287,21 @@ onMounted(() => { load(); loadIPLogs() })
 .export-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; align-items: center; }
 
 .desc-cell { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.stat-card.clickable {
+  cursor: pointer;
+  transition: all .2s;
+  user-select: none;
+}
+.stat-card.clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--accent);
+}
+.stat-card.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(79,124,255,.2);
+}
 
 /* Modal */
 .modal-overlay {
