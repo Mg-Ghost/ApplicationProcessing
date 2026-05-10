@@ -86,6 +86,13 @@ CREATE TABLE IF NOT EXISTS ip_logs (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Добавляем closed_by_admin если не существует
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='tickets' AND column_name='closed_by_admin') THEN
+    ALTER TABLE tickets ADD COLUMN closed_by_admin TEXT NOT NULL DEFAULT '';
+  END IF;
+END $$;
+
 CREATE INDEX IF NOT EXISTS idx_tickets_user_id  ON tickets(user_id);
 CREATE INDEX IF NOT EXISTS idx_tickets_status   ON tickets(status);
 CREATE INDEX IF NOT EXISTS idx_tickets_priority ON tickets(priority);

@@ -61,6 +61,10 @@
             <div class="info-grid">
               <div class="info-row"><span class="info-label">Создано</span><span>{{ fmtFull(ticket.created_at) }}</span></div>
               <div class="info-row"><span class="info-label">Обновлено</span><span>{{ fmtFull(ticket.updated_at) }}</span></div>
+              <div v-if="isAdmin && ticket.closed_by_admin" class="info-row">
+                <span class="info-label">Закрыл</span>
+                <span style="color:var(--accent);font-weight:600;">🔧 {{ ticket.closed_by_admin }}</span>
+              </div>
             </div>
           </div>
 

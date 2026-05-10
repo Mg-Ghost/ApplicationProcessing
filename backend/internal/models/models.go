@@ -100,6 +100,7 @@ type Ticket struct {
 	Priority        Priority         `json:"priority"`
 	Status          TicketStatus     `json:"status"`
 	AdminComment    string           `json:"admin_comment"`
+	ClosedByAdmin   string           `json:"closed_by_admin"`   // кто закрыл заявление
 	AutoEscalated   bool             `json:"auto_escalated"`
 	Messages        []*TicketMessage `json:"messages,omitempty"`
 	CreatedAt       time.Time        `json:"created_at"`

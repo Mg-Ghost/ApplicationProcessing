@@ -59,7 +59,7 @@
       <table>
         <thead><tr>
           <th>#</th><th>ФИО</th><th>Описание</th><th>Подразделение</th>
-          <th>Дата</th><th>Приоритет</th><th>Статус</th><th>Действия</th>
+          <th>Дата</th><th>Приоритет</th><th>Статус</th><th>Закрыл</th><th>Действия</th>
         </tr></thead>
         <tbody>
           <tr v-for="t in tickets" :key="t.id">
@@ -73,6 +73,7 @@
               <span v-if="t.auto_escalated" title="Автоэскалация" style="margin-left:4px;">⚡</span>
             </td>
             <td><span :class="['badge',`badge-${t.status}`]">{{ slabel(t.status) }}</span></td>
+            <td style="font-size:12px;color:var(--text-muted);">{{ t.closed_by_admin || '—' }}</td>
             <td>
               <div style="display:flex;gap:4px;flex-wrap:wrap;">
                 <router-link :to="`/tickets/${t.id}`" class="btn btn-ghost btn-sm" title="Просмотр">👁</router-link>

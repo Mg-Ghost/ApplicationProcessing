@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"meddoc/internal/auth"
 	"meddoc/internal/middleware"
 	"meddoc/internal/models"
 )
@@ -248,22 +249,25 @@ func (h *Handler) AddComment(c *gin.Context) {
 		return
 	}
 
-	// Обновляем поле admin_comment (для обратной совместимости)
+	adminName := getAdminName(c)
+
+	// Обновляем поле admin_comment
 	if err := h.tickets.AddComment(c.Request.Context(), id, req.Comment); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Также сохраняем как сообщение в переписке
+	// Сохраняем как сообщение в переписке с именем администратора
 	msg := &models.TicketMessage{
-		TicketID:   id,
-		Author:     models.AuthorAdmin,
-		AuthorName: "IT-отдел",
-		Text:       req.Comment,
+		TicketID:    id,
+		Author:      models.AuthorAdmin,
+		AuthorName:  adminName,
+		Text:        req.Comment,
+		ReadByUser:  false,
+		ReadByAdmin: true,
 	}
 	h.messages.Add(c.Request.Context(), msg)
 
-	// Меняем статус на "в работе" если был "открыт"
 	if t.Status == models.StatusOpen {
 		h.tickets.SetStatus(c.Request.Context(), id, models.StatusInProgress)
 	}
@@ -284,8 +288,25 @@ func (h *Handler) AdminDeleteTicket(c *gin.Context) {
 
 func (h *Handler) AdminCloseTicket(c *gin.Context) {
 	id := parseID(c)
-	h.tickets.SetStatus(c.Request.Context(), id, models.StatusClosed)
-	c.JSON(http.StatusOK, gin.H{"message": "closed"})
+	// Получаем имя администратора из контекста JWT
+	adminName := getAdminName(c)
+	if err := h.tickets.CloseByAdmin(c.Request.Context(), id, adminName); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "closed", "closed_by": adminName})
+}
+
+// getAdminName — достаёт логин администратора из JWT токена
+func getAdminName(c *gin.Context) string {
+	header := c.GetHeader("Authorization")
+	if len(header) > 7 {
+		claims, err := auth.ParseToken(header[7:])
+		if err == nil && claims.Login != "" {
+			return claims.Login
+		}
+	}
+	return "Администратор"
 }
 
 func (h *Handler) GetIPLogs(c *gin.Context) {

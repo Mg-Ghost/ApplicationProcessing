@@ -81,8 +81,13 @@ func (r *AdminRepo) LogIP(ctx context.Context, log *models.IPLog) error {
 }
 
 func (r *AdminRepo) GetIPLogs(ctx context.Context) ([]*models.IPLog, error) {
+	// Удаляем записи старше 24 часов
+	r.db.Exec(ctx, `DELETE FROM ip_logs WHERE created_at < NOW() - INTERVAL '24 hours'`)
+
 	rows, err := r.db.Query(ctx,
-		`SELECT id, user_id, login, ip_address, created_at FROM ip_logs ORDER BY created_at DESC LIMIT 100`)
+		`SELECT id, user_id, login, ip_address, created_at FROM ip_logs
+		 WHERE created_at >= NOW() - INTERVAL '24 hours'
+		 ORDER BY created_at DESC`)
 	if err != nil {
 		return nil, err
 	}

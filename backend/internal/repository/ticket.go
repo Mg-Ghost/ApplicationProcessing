@@ -30,12 +30,13 @@ func (r *TicketRepo) GetByID(ctx context.Context, id int64) (*models.Ticket, err
 	err := r.db.QueryRow(ctx,
 		`SELECT id, user_id, first_name, last_name, phone, position, room, division,
 		 description, inventory_number, ip_address, priority, status,
-		 admin_comment, auto_escalated, created_at, updated_at
+		 admin_comment, closed_by_admin, auto_escalated, created_at, updated_at
 		 FROM tickets WHERE id=$1`, id,
 	).Scan(
 		&t.ID, &t.UserID, &t.FirstName, &t.LastName, &t.Phone, &t.Position,
 		&t.Room, &t.Division, &t.Description, &t.InventoryNumber, &t.IPAddress,
-		&t.Priority, &t.Status, &t.AdminComment, &t.AutoEscalated, &t.CreatedAt, &t.UpdatedAt,
+		&t.Priority, &t.Status, &t.AdminComment, &t.ClosedByAdmin, &t.AutoEscalated,
+		&t.CreatedAt, &t.UpdatedAt,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("ticket not found: %w", err)
@@ -47,7 +48,7 @@ func (r *TicketRepo) ListByUser(ctx context.Context, userID int64) ([]*models.Ti
 	rows, err := r.db.Query(ctx,
 		`SELECT id, user_id, first_name, last_name, phone, position, room, division,
 		 description, inventory_number, ip_address, priority, status,
-		 admin_comment, auto_escalated, created_at, updated_at
+		 admin_comment, closed_by_admin, auto_escalated, created_at, updated_at
 		 FROM tickets WHERE user_id=$1 ORDER BY created_at DESC`, userID)
 	if err != nil {
 		return nil, err
@@ -62,34 +63,23 @@ func (r *TicketRepo) ListAll(ctx context.Context, f models.TicketFilter) ([]*mod
 	i := 1
 
 	if f.Division != "" {
-		where = append(where, fmt.Sprintf("division=$%d", i))
-		args = append(args, f.Division)
-		i++
+		where = append(where, fmt.Sprintf("division=$%d", i)); args = append(args, f.Division); i++
 	}
 	if f.Priority != "" {
-		where = append(where, fmt.Sprintf("priority=$%d", i))
-		args = append(args, f.Priority)
-		i++
+		where = append(where, fmt.Sprintf("priority=$%d", i)); args = append(args, f.Priority); i++
 	}
 	if f.Status != "" {
-		where = append(where, fmt.Sprintf("status=$%d", i))
-		args = append(args, f.Status)
-		i++
+		where = append(where, fmt.Sprintf("status=$%d", i)); args = append(args, f.Status); i++
 	}
 	if f.DateFrom != "" {
-		where = append(where, fmt.Sprintf("created_at >= $%d", i))
-		args = append(args, f.DateFrom)
-		i++
+		where = append(where, fmt.Sprintf("created_at >= $%d", i)); args = append(args, f.DateFrom); i++
 	}
 	if f.DateTo != "" {
-		where = append(where, fmt.Sprintf("created_at <= $%d", i))
-		args = append(args, f.DateTo+" 23:59:59")
-		i++
+		where = append(where, fmt.Sprintf("created_at <= $%d", i)); args = append(args, f.DateTo+" 23:59:59"); i++
 	}
 
 	sortCol := "created_at"
-	allowedSort := map[string]bool{"created_at": true, "priority": true, "division": true}
-	if allowedSort[f.SortBy] {
+	if map[string]bool{"created_at": true, "priority": true, "division": true}[f.SortBy] {
 		sortCol = f.SortBy
 	}
 	sortDir := "DESC"
@@ -100,7 +90,7 @@ func (r *TicketRepo) ListAll(ctx context.Context, f models.TicketFilter) ([]*mod
 	q := fmt.Sprintf(
 		`SELECT id, user_id, first_name, last_name, phone, position, room, division,
 		 description, inventory_number, ip_address, priority, status,
-		 admin_comment, auto_escalated, created_at, updated_at
+		 admin_comment, closed_by_admin, auto_escalated, created_at, updated_at
 		 FROM tickets WHERE %s ORDER BY %s %s`,
 		strings.Join(where, " AND "), sortCol, sortDir,
 	)
@@ -137,6 +127,14 @@ func (r *TicketRepo) SetStatus(ctx context.Context, id int64, status models.Tick
 	return err
 }
 
+// CloseByAdmin — закрывает заявление и записывает кто закрыл
+func (r *TicketRepo) CloseByAdmin(ctx context.Context, id int64, adminName string) error {
+	_, err := r.db.Exec(ctx,
+		`UPDATE tickets SET status='closed', closed_by_admin=$1, updated_at=NOW() WHERE id=$2`,
+		adminName, id)
+	return err
+}
+
 func (r *TicketRepo) AddComment(ctx context.Context, id int64, comment string) error {
 	_, err := r.db.Exec(ctx,
 		`UPDATE tickets SET admin_comment=$1, status='in_progress', updated_at=NOW() WHERE id=$2`,
@@ -149,7 +147,6 @@ func (r *TicketRepo) Delete(ctx context.Context, id int64) error {
 	return err
 }
 
-// EscalateOldTickets sets priority=high for open tickets older than 5 working days
 func (r *TicketRepo) EscalateOldTickets(ctx context.Context) (int64, error) {
 	res, err := r.db.Exec(ctx,
 		`UPDATE tickets SET priority='high', auto_escalated=TRUE, updated_at=NOW()
@@ -170,7 +167,8 @@ func scanTickets(rows interface{ Next() bool; Scan(...any) error }) ([]*models.T
 		if err := rows.Scan(
 			&t.ID, &t.UserID, &t.FirstName, &t.LastName, &t.Phone, &t.Position,
 			&t.Room, &t.Division, &t.Description, &t.InventoryNumber, &t.IPAddress,
-			&t.Priority, &t.Status, &t.AdminComment, &t.AutoEscalated, &t.CreatedAt, &t.UpdatedAt,
+			&t.Priority, &t.Status, &t.AdminComment, &t.ClosedByAdmin, &t.AutoEscalated,
+			&t.CreatedAt, &t.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}

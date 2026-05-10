@@ -100,8 +100,8 @@ func (h *Handler) AdminLogin(c *gin.Context) {
 		Login:     req.Login,
 		IPAddress: ip,
 	})
-	token, _ := auth.GenerateToken(id, "admin")
-	c.JSON(http.StatusOK, gin.H{"token": token, "role": "admin", "ip": ip})
+	token, _ := auth.GenerateToken(id, "admin", req.Login)
+	c.JSON(http.StatusOK, gin.H{"token": token, "role": "admin", "ip": ip, "login": req.Login})
 }
 
 func (h *Handler) GetProfile(c *gin.Context) {
