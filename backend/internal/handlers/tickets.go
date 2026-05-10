@@ -113,7 +113,6 @@ func (h *Handler) UpdateTicket(c *gin.Context) {
 func (h *Handler) UserReply(c *gin.Context) {
 	id := parseID(c)
 
-	// Проверяем что заявка принадлежит пользователю
 	t, err := h.tickets.GetByID(c.Request.Context(), id)
 	if err != nil || t.UserID != middleware.GetUserID(c) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
