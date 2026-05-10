@@ -13,9 +13,9 @@ func NewDB(ctx context.Context) (*pgxpool.Pool, error) {
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		getenv("DB_HOST", "localhost"),
 		getenv("DB_PORT", "5432"),
-		getenv("DB_USER", "postgres"),
+		getenv("DB_USER", "meddoc_user"),
 		getenv("DB_PASSWORD", "supersecret"),
-		getenv("DB_NAME", "hospital_db"),
+		getenv("DB_NAME", "meddoc_db"),
 	)
 
 	pool, err := pgxpool.New(ctx, dsn)
@@ -90,4 +90,27 @@ CREATE INDEX IF NOT EXISTS idx_tickets_user_id  ON tickets(user_id);
 CREATE INDEX IF NOT EXISTS idx_tickets_status   ON tickets(status);
 CREATE INDEX IF NOT EXISTS idx_tickets_priority ON tickets(priority);
 CREATE INDEX IF NOT EXISTS idx_tickets_division ON tickets(division);
+
+CREATE TABLE IF NOT EXISTS ticket_messages (
+    id          BIGSERIAL PRIMARY KEY,
+    ticket_id   BIGINT      NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
+    author      TEXT        NOT NULL,
+    author_name TEXT        NOT NULL,
+    text        TEXT        NOT NULL,
+    read_by_user  BOOLEAN NOT NULL DEFAULT FALSE,
+    read_by_admin BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_ticket_messages_ticket_id ON ticket_messages(ticket_id);
+
+-- Добавляем колонки если таблица уже существует (для существующих БД)
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='ticket_messages' AND column_name='read_by_user') THEN
+    ALTER TABLE ticket_messages ADD COLUMN read_by_user BOOLEAN NOT NULL DEFAULT FALSE;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='ticket_messages' AND column_name='read_by_admin') THEN
+    ALTER TABLE ticket_messages ADD COLUMN read_by_admin BOOLEAN NOT NULL DEFAULT FALSE;
+  END IF;
+END $$;
 `

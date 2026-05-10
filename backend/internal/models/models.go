@@ -73,12 +73,14 @@ const (
 )
 
 type TicketMessage struct {
-	ID         int64         `json:"id"`
-	TicketID   int64         `json:"ticket_id"`
-	Author     MessageAuthor `json:"author"`
-	AuthorName string        `json:"author_name"`
-	Text       string        `json:"text"`
-	CreatedAt  time.Time     `json:"created_at"`
+	ID           int64         `json:"id"`
+	TicketID     int64         `json:"ticket_id"`
+	Author       MessageAuthor `json:"author"`
+	AuthorName   string        `json:"author_name"`
+	Text         string        `json:"text"`
+	ReadByUser   bool          `json:"read_by_user"`
+	ReadByAdmin  bool          `json:"read_by_admin"`
+	CreatedAt    time.Time     `json:"created_at"`
 }
 
 // ─── Ticket ───────────────────────────────────────────────────────────────────

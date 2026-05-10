@@ -6,10 +6,9 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/gin-gonic/gin"
 	"meddoc/internal/middleware"
 	"meddoc/internal/models"
-
-	"github.com/gin-gonic/gin"
 )
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -50,6 +49,8 @@ func (h *Handler) GetTicket(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
 		return
 	}
+	// Помечаем сообщения от админа как прочитанные пользователем
+	h.messages.MarkReadByUser(c.Request.Context(), id)
 	h.loadMessages(c, t)
 	c.JSON(http.StatusOK, t)
 }
@@ -113,6 +114,7 @@ func (h *Handler) UpdateTicket(c *gin.Context) {
 func (h *Handler) UserReply(c *gin.Context) {
 	id := parseID(c)
 
+	// Проверяем что заявка принадлежит пользователю
 	t, err := h.tickets.GetByID(c.Request.Context(), id)
 	if err != nil || t.UserID != middleware.GetUserID(c) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
@@ -203,8 +205,31 @@ func (h *Handler) AdminGetTicket(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
 		return
 	}
+	// Помечаем сообщения от пользователя как прочитанные админом
+	h.messages.MarkReadByAdmin(c.Request.Context(), id)
 	h.loadMessages(c, t)
 	c.JSON(http.StatusOK, t)
+}
+
+// UnreadCounts — возвращает количество непрочитанных по каждой заявке
+func (h *Handler) UnreadCounts(c *gin.Context) {
+	role, _ := c.Get(middleware.ContextRole)
+	if role == "admin" {
+		counts, err := h.messages.UnreadPerTicketForAdmin(c.Request.Context())
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, counts)
+	} else {
+		userID := middleware.GetUserID(c)
+		counts, err := h.messages.UnreadPerTicketForUser(c.Request.Context(), userID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, counts)
+	}
 }
 
 // ─── Admin: ответ в переписке ─────────────────────────────────────────────────

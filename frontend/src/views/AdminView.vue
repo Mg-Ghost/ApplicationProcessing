@@ -76,7 +76,10 @@
             <td>
               <div style="display:flex;gap:4px;flex-wrap:wrap;">
                 <router-link :to="`/tickets/${t.id}`" class="btn btn-ghost btn-sm" title="Просмотр">👁</router-link>
-                <button class="btn btn-primary btn-sm" @click="openChat(t)" title="Открыть переписку">💬</button>
+                <span class="btn-with-badge">
+                  <button class="btn btn-primary btn-sm" @click="openChat(t)" title="Открыть переписку">💬 Ответить</button>
+                  <span v-if="unread[t.id]" class="unread-badge">{{ unread[t.id] }}</span>
+                </span>
                 <button v-if="t.status !== 'closed'" class="btn btn-ghost btn-sm" @click="closeT(t.id)" title="Закрыть">✓</button>
                 <button class="btn btn-danger btn-sm" @click="deleteT(t.id)" title="Удалить">🗑</button>
               </div>
@@ -148,11 +151,12 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { adminApi } from '@/api'
 import TicketChat from '@/components/shared/TicketChat.vue'
 
 const tickets   = ref([])
+const unread    = ref({})
 const ipLogs    = ref([])
 const loading   = ref(true)
 const chatModal = ref(false)
@@ -175,8 +179,9 @@ async function load() {
   loading.value = true
   const params = {}
   Object.entries(filter).forEach(([k,v]) => { if(v) params[k] = v })
-  const r = await adminApi.listTickets(params)
+  const [r, u] = await Promise.all([adminApi.listTickets(params), adminApi.unreadCounts()])
   tickets.value = r.data || []
+  unread.value  = u.data || {}
   loading.value = false
 }
 
@@ -205,23 +210,34 @@ function resetFilter() {
   load()
 }
 
-async function openChat(t) {
+async function openChat(ticket) {
   try {
-    const r = await adminApi.getTicket(t.id)
+    const r = await adminApi.getTicket(ticket.id)
     activeTicket.value = r.data
     chatModal.value    = true
+    // Сразу убираем бейдж для этой заявки — мы её прочитали
+    const updated = { ...unread.value }
+    delete updated[ticket.id]
+    unread.value = updated
   } catch(e) {
     alert('Ошибка загрузки заявки: ' + (e.response?.data?.error || e.message))
   }
 }
 
 async function onAdminSent() {
-  // Перезагружаем заявку чтобы показать новое сообщение
   if (activeTicket.value) {
     const r = await adminApi.getTicket(activeTicket.value.id)
     activeTicket.value = r.data
+    // Убираем бейдж только для текущей заявки, не трогаем остальные
+    const updated = { ...unread.value }
+    delete updated[activeTicket.value.id]
+    unread.value = updated
   }
-  await load()
+  // Обновляем список заявок без перезаписи unread
+  const params = {}
+  Object.entries(filter).forEach(([k,v]) => { if(v) params[k] = v })
+  const r = await adminApi.listTickets(params)
+  tickets.value = r.data || []
 }
 
 async function closeT(id) {
@@ -262,7 +278,26 @@ function fmtTime(d) { return new Date(d).toLocaleTimeString('ru-RU', { hour:'2-d
 function plabel(p)  { return { high:'Высокий', medium:'Средний', low:'Низкий' }[p] || p }
 function slabel(s)  { return { open:'Открыто', in_progress:'На рассмотрении', closed:'Закрыто', cancelled:'Отменено' }[s] || s }
 
-onMounted(() => { load(); loadIPLogs() })
+let pollInterval = null
+
+onMounted(async () => {
+  await load()
+  loadIPLogs()
+  // Polling: проверяем новые сообщения от пользователей каждые 15 секунд
+  pollInterval = setInterval(async () => {
+    try {
+      const u = await adminApi.unreadCounts()
+      const fresh = u.data || {}
+      const merged = { ...unread.value }
+      Object.keys(fresh).forEach(id => { merged[id] = fresh[id] })
+      unread.value = merged
+    } catch(e) { /* тихо игнорируем */ }
+  }, 15000)
+})
+
+onUnmounted(() => {
+  clearInterval(pollInterval)
+})
 </script>
 
 <style scoped>
@@ -325,5 +360,17 @@ onMounted(() => { load(); loadIPLogs() })
   background: var(--surface2); border-radius: 10px;
   padding: 12px; font-size: 13px; margin-bottom: 12px;
   color: var(--text); line-height: 1.5;
+}
+.btn-with-badge { position: relative; display: inline-flex; }
+.unread-badge {
+  position: absolute; top: -6px; right: -6px;
+  background: #ef4444; color: white;
+  font-size: 10px; font-weight: 700;
+  min-width: 18px; height: 18px;
+  border-radius: 9px; display: flex;
+  align-items: center; justify-content: center;
+  padding: 0 4px; border: 2px solid white;
+  pointer-events: none;
+  z-index: 1;
 }
 </style>

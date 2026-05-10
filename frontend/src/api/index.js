@@ -34,7 +34,8 @@ export const profileApi = {
 
 // ─── Tickets (user) ───────────────────────────────────────────────────────
 export const ticketsApi = {
-  list:      ()        => api.get('/tickets'),
+  list:         ()        => api.get('/tickets'),
+  unreadCounts: ()        => api.get('/tickets/unread-counts'),
   get:       id        => api.get(`/tickets/${id}`),
   create:    d         => api.post('/tickets', d),
   update:    (id, d)   => api.put(`/tickets/${id}`, d),
@@ -45,7 +46,8 @@ export const ticketsApi = {
 
 // ─── Admin ────────────────────────────────────────────────────────────────
 export const adminApi = {
-  listTickets:  params  => api.get('/admin/tickets', { params }),
+  listTickets:   params  => api.get('/admin/tickets', { params }),
+  unreadCounts:  ()      => api.get('/admin/unread-counts'),
   getTicket:    id      => api.get(`/admin/tickets/${id}`),
   deleteTicket: id      => api.delete(`/admin/tickets/${id}`),
   closeTicket:  id      => api.patch(`/admin/tickets/${id}/close`),
