@@ -30,13 +30,14 @@ func (r *TicketRepo) GetByID(ctx context.Context, id int64) (*models.Ticket, err
 	err := r.db.QueryRow(ctx,
 		`SELECT id, user_id, first_name, last_name, phone, position, room, division,
 		 description, inventory_number, ip_address, priority, status,
-		 admin_comment, closed_by_admin, closed_by_role, auto_escalated, created_at, updated_at
+		 admin_comment, auto_escalated, created_at, updated_at,
+		 closed_by_admin, closed_by_role
 		 FROM tickets WHERE id=$1`, id,
 	).Scan(
 		&t.ID, &t.UserID, &t.FirstName, &t.LastName, &t.Phone, &t.Position,
 		&t.Room, &t.Division, &t.Description, &t.InventoryNumber, &t.IPAddress,
-		&t.Priority, &t.Status, &t.AdminComment, &t.ClosedByAdmin, &t.ClosedByRole, &t.AutoEscalated,
-		&t.CreatedAt, &t.UpdatedAt,
+		&t.Priority, &t.Status, &t.AdminComment, &t.AutoEscalated,
+		&t.CreatedAt, &t.UpdatedAt, &t.ClosedByAdmin, &t.ClosedByRole,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("ticket not found: %w", err)
@@ -48,7 +49,8 @@ func (r *TicketRepo) ListByUser(ctx context.Context, userID int64) ([]*models.Ti
 	rows, err := r.db.Query(ctx,
 		`SELECT id, user_id, first_name, last_name, phone, position, room, division,
 		 description, inventory_number, ip_address, priority, status,
-		 admin_comment, closed_by_admin, closed_by_role, auto_escalated, created_at, updated_at
+		 admin_comment, auto_escalated, created_at, updated_at,
+		 closed_by_admin, closed_by_role
 		 FROM tickets WHERE user_id=$1 ORDER BY created_at DESC`, userID)
 	if err != nil {
 		return nil, err
@@ -90,7 +92,8 @@ func (r *TicketRepo) ListAll(ctx context.Context, f models.TicketFilter) ([]*mod
 	q := fmt.Sprintf(
 		`SELECT id, user_id, first_name, last_name, phone, position, room, division,
 		 description, inventory_number, ip_address, priority, status,
-		 admin_comment, closed_by_admin, auto_escalated, created_at, updated_at
+		 admin_comment, auto_escalated, created_at, updated_at,
+		 closed_by_admin, closed_by_role
 		 FROM tickets WHERE %s ORDER BY %s %s`,
 		strings.Join(where, " AND "), sortCol, sortDir,
 	)
@@ -167,8 +170,8 @@ func scanTickets(rows interface{ Next() bool; Scan(...any) error }) ([]*models.T
 		if err := rows.Scan(
 			&t.ID, &t.UserID, &t.FirstName, &t.LastName, &t.Phone, &t.Position,
 			&t.Room, &t.Division, &t.Description, &t.InventoryNumber, &t.IPAddress,
-			&t.Priority, &t.Status, &t.AdminComment, &t.ClosedByAdmin, &t.ClosedByRole, &t.AutoEscalated,
-			&t.CreatedAt, &t.UpdatedAt,
+			&t.Priority, &t.Status, &t.AdminComment, &t.AutoEscalated,
+			&t.CreatedAt, &t.UpdatedAt, &t.ClosedByAdmin, &t.ClosedByRole,
 		); err != nil {
 			return nil, err
 		}
