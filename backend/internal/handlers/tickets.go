@@ -173,7 +173,13 @@ func (h *Handler) CloseTicket(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
 		return
 	}
-	h.tickets.SetStatus(c.Request.Context(), id, models.StatusClosed)
+	userID := middleware.GetUserID(c)
+	u, uerr := h.users.GetByID(c.Request.Context(), userID)
+	closedBy := "Пользователь"
+	if uerr == nil {
+		closedBy = u.FirstName + " " + u.LastName
+	}
+	h.tickets.CloseByAdmin(c.Request.Context(), id, closedBy, "user")
 	c.JSON(http.StatusOK, gin.H{"message": "closed"})
 }
 
@@ -288,13 +294,12 @@ func (h *Handler) AdminDeleteTicket(c *gin.Context) {
 
 func (h *Handler) AdminCloseTicket(c *gin.Context) {
 	id := parseID(c)
-	// Получаем имя администратора из контекста JWT
-	adminName := getAdminName(c)
-	if err := h.tickets.CloseByAdmin(c.Request.Context(), id, adminName); err != nil {
+	adminLogin := getAdminName(c)
+	if err := h.tickets.CloseByAdmin(c.Request.Context(), id, adminLogin, "admin"); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "closed", "closed_by": adminName})
+	c.JSON(http.StatusOK, gin.H{"message": "closed", "closed_by": adminLogin})
 }
 
 // getAdminName — достаёт логин администратора из JWT токена

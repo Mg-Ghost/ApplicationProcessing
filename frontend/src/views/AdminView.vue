@@ -73,7 +73,18 @@
               <span v-if="t.auto_escalated" title="Автоэскалация" style="margin-left:4px;">⚡</span>
             </td>
             <td><span :class="['badge',`badge-${t.status}`]">{{ slabel(t.status) }}</span></td>
-            <td style="font-size:12px;color:var(--text-muted);">{{ t.closed_by_admin || '—' }}</td>
+            <td style="font-size:12px;">
+              <span v-if="t.closed_by_admin">
+                <span :style="t.closed_by_role==='admin' ? 'color:var(--accent);font-weight:600;' : 'color:#16a34a;font-weight:600;'">
+                  {{ t.closed_by_role === 'admin' ? '🔧' : '👤' }}
+                  <strong>{{ t.closed_by_admin }}</strong>
+                </span>
+                <div style="font-size:10px;color:var(--text-muted);margin-top:1px;">
+                  {{ t.closed_by_role === 'admin' ? 'администратор' : 'пользователь' }}
+                </div>
+              </span>
+              <span v-else style="color:var(--text-muted);">—</span>
+            </td>
             <td>
               <div style="display:flex;gap:4px;flex-wrap:wrap;">
                 <router-link :to="`/tickets/${t.id}`" class="btn btn-ghost btn-sm" title="Просмотр">👁</router-link>

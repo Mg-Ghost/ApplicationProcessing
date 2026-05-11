@@ -63,7 +63,10 @@
               <div class="info-row"><span class="info-label">Обновлено</span><span>{{ fmtFull(ticket.updated_at) }}</span></div>
               <div v-if="isAdmin && ticket.closed_by_admin" class="info-row">
                 <span class="info-label">Закрыл</span>
-                <span style="color:var(--accent);font-weight:600;">🔧 {{ ticket.closed_by_admin }}</span>
+                <span :class="ticket.closed_by_role === 'admin' ? 'closed-by-admin' : 'closed-by-user'">
+                  {{ ticket.closed_by_role === 'admin' ? '🔧 Администратор:' : '👤 Пользователь:' }}
+                  <strong>{{ ticket.closed_by_admin }}</strong>
+                </span>
               </div>
             </div>
           </div>
@@ -203,4 +206,6 @@ function slabel(s)  { return { open:'Открыто', in_progress:'На расс
 }
 
 .btn-success { background: var(--grad-success); color: white; }
+.closed-by-admin { color: var(--accent); font-weight: 600; font-size: 13px; }
+.closed-by-user  { color: #16a34a;       font-weight: 600; font-size: 13px; }
 </style>
