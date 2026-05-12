@@ -38,7 +38,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick, onMounted } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { ticketsApi, adminApi } from '@/api'
 
 const props = defineProps({
@@ -111,9 +111,24 @@ function fmtTime(d) {
   })
 }
 
+let liveInterval = null
+
 // Загружаем при монтировании и при смене ticketId
-onMounted(fetchMessages)
-watch(() => props.ticketId, fetchMessages)
+onMounted(() => {
+  fetchMessages()
+  // Живое обновление чата каждые 5 секунд
+  liveInterval = setInterval(() => {
+    if (!sending.value) fetchMessages()
+  }, 5000)
+})
+
+onUnmounted(() => {
+  clearInterval(liveInterval)
+})
+
+watch(() => props.ticketId, () => {
+  fetchMessages()
+})
 </script>
 
 <style scoped>

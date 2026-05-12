@@ -106,7 +106,7 @@
     </div>
 
     <!-- Chat modal -->
-    <div v-if="chatModal" class="modal-overlay" @click.self="chatModal=false">
+    <div v-if="chatModal" class="modal-overlay" @click.self="chatModal=false; stopChatPolling()">
       <div class="card modal-box">
         <div class="modal-top">
           <div>
@@ -117,7 +117,7 @@
               <span>🚪 {{ activeTicket?.room }}</span>
             </div>
           </div>
-          <button class="btn btn-ghost btn-sm" @click="chatModal=false">✕</button>
+          <button class="btn btn-ghost btn-sm" @click="chatModal=false; stopChatPolling()">✕</button>
         </div>
 
         <div class="ticket-desc">{{ activeTicket?.description }}</div>
@@ -254,6 +254,7 @@ async function openChat(ticket) {
     editPriority.value  = r.data.priority || 'medium'
     prioritySaved.value = false
     chatModal.value    = true
+    startChatPolling() // начинаем опрос новых сообщений
     // Сразу убираем бейдж для этой заявки — мы её прочитали
     const updated = { ...unread.value }
     delete updated[ticket.id]
@@ -317,26 +318,59 @@ function fmtTime(d) { return new Date(d).toLocaleTimeString('ru-RU', { hour:'2-d
 function plabel(p)  { return { high:'Высокий', medium:'Средний', low:'Низкий' }[p] || p }
 function slabel(s)  { return { open:'Открыто', in_progress:'На рассмотрении', closed:'Закрыто', cancelled:'Отменено' }[s] || s }
 
-let pollInterval = null
+let pollInterval     = null
+let chatPollInterval = null
 
 onMounted(async () => {
   await load()
   loadIPLogs()
-  // Polling: проверяем новые сообщения от пользователей каждые 15 секунд
+
+  // Polling 1: каждые 10 сек обновляем список заявок + непрочитанные
   pollInterval = setInterval(async () => {
     try {
-      const u = await adminApi.unreadCounts()
+      const params = {}
+      Object.entries(filter).forEach(([k,v]) => { if(v) params[k] = v })
+      const [r, u] = await Promise.all([
+        adminApi.listTickets(params),
+        adminApi.unreadCounts()
+      ])
+      tickets.value = r.data || []
+      // Обновляем unread точечно — не трогаем уже убранные
       const fresh = u.data || {}
       const merged = { ...unread.value }
       Object.keys(fresh).forEach(id => { merged[id] = fresh[id] })
       unread.value = merged
-    } catch(e) { /* тихо игнорируем */ }
-  }, 15000)
+    } catch(e) { /* тихо */ }
+  }, 10000)
 })
 
 onUnmounted(() => {
   clearInterval(pollInterval)
+  clearInterval(chatPollInterval)
 })
+
+// Polling 2: когда открыт чат — обновляем сообщения каждые 5 сек
+function startChatPolling() {
+  stopChatPolling()
+  chatPollInterval = setInterval(async () => {
+    if (!activeTicket.value || !chatModal.value) {
+      stopChatPolling()
+      return
+    }
+    try {
+      const r = await adminApi.getTicket(activeTicket.value.id)
+      // Обновляем только messages — не трогаем остальные поля чтобы не мигало
+      if (r.data?.messages) {
+        activeTicket.value = { ...activeTicket.value, messages: r.data.messages }
+      }
+    } catch(e) { /* тихо */ }
+  }, 5000)
+}
+
+function stopChatPolling() {
+  clearInterval(chatPollInterval)
+  chatPollInterval = null
+}
 </script>
 
 <style scoped>
@@ -384,7 +418,7 @@ onUnmounted(() => {
   z-index: 999; padding: 20px;
 }
 .modal-box {
-  max-width: 580px; width: 100%;
+  max-width: 760px; width: 100%;
   max-height: 90vh; overflow-y: auto;
 }
 .modal-top {
