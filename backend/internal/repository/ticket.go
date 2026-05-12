@@ -115,11 +115,10 @@ func (r *TicketRepo) Update(ctx context.Context, id int64, req *models.UpdateTic
 		 description      = COALESCE(NULLIF($4,''), description),
 		 inventory_number = COALESCE(NULLIF($5,''), inventory_number),
 		 ip_address       = COALESCE(NULLIF($6,''), ip_address),
-		 priority         = COALESCE(NULLIF($7,''), priority),
 		 updated_at       = NOW()
-		 WHERE id=$8`,
+		 WHERE id=$7`,
 		req.Phone, req.Position, req.Room, req.Description,
-		req.InventoryNumber, req.IPAddress, string(req.Priority), id,
+		req.InventoryNumber, req.IPAddress, id,
 	)
 	return err
 }
@@ -127,6 +126,14 @@ func (r *TicketRepo) Update(ctx context.Context, id int64, req *models.UpdateTic
 func (r *TicketRepo) SetStatus(ctx context.Context, id int64, status models.TicketStatus) error {
 	_, err := r.db.Exec(ctx,
 		`UPDATE tickets SET status=$1, updated_at=NOW() WHERE id=$2`, status, id)
+	return err
+}
+
+// SetPriority — только для администратора
+func (r *TicketRepo) SetPriority(ctx context.Context, id int64, priority models.Priority) error {
+	_, err := r.db.Exec(ctx,
+		`UPDATE tickets SET priority=$1, updated_at=NOW() WHERE id=$2`,
+		priority, id)
 	return err
 }
 
@@ -156,7 +163,7 @@ func (r *TicketRepo) EscalateOldTickets(ctx context.Context) (int64, error) {
 		 WHERE status IN ('open','in_progress')
 		   AND priority != 'high'
 		   AND auto_escalated = FALSE
-		   AND created_at <= NOW() - INTERVAL '7 days'`)
+		   AND created_at <= NOW() - INTERVAL '10 days'`)
 	if err != nil {
 		return 0, err
 	}

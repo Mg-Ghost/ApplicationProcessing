@@ -109,26 +109,31 @@ type Ticket struct {
 }
 
 type CreateTicketRequest struct {
-	FirstName       string   `json:"first_name"       binding:"required"`
-	LastName        string   `json:"last_name"        binding:"required"`
-	Phone           string   `json:"phone"            binding:"required"`
-	Position        string   `json:"position"         binding:"required"`
-	Room            string   `json:"room"             binding:"required"`
-	Division        string   `json:"division"         binding:"required"`
-	Description     string   `json:"description"      binding:"required,min=10"`
-	InventoryNumber string   `json:"inventory_number"`
-	IPAddress       string   `json:"ip_address"`
-	Priority        Priority `json:"priority"         binding:"required,oneof=low medium high"`
+	FirstName       string `json:"first_name"       binding:"required"`
+	LastName        string `json:"last_name"        binding:"required"`
+	Phone           string `json:"phone"            binding:"required"`
+	Position        string `json:"position"         binding:"required"`
+	Room            string `json:"room"             binding:"required"`
+	Division        string `json:"division"         binding:"required"`
+	Description     string `json:"description"      binding:"required,min=10"`
+	InventoryNumber string `json:"inventory_number"`
+	IPAddress       string `json:"ip_address"`
+	// Приоритет задаёт только администратор, пользователь всегда получает Medium
 }
 
 type UpdateTicketRequest struct {
-	Phone           string   `json:"phone"`
-	Position        string   `json:"position"`
-	Room            string   `json:"room"`
-	Description     string   `json:"description"`
-	InventoryNumber string   `json:"inventory_number"`
-	IPAddress       string   `json:"ip_address"`
-	Priority        Priority `json:"priority"`
+	Phone           string `json:"phone"`
+	Position        string `json:"position"`
+	Room            string `json:"room"`
+	Description     string `json:"description"`
+	InventoryNumber string `json:"inventory_number"`
+	IPAddress       string `json:"ip_address"`
+	// Приоритет убран — только администратор может менять
+}
+
+// AdminUpdatePriorityRequest — только для администратора
+type AdminUpdatePriorityRequest struct {
+	Priority Priority `json:"priority" binding:"required,oneof=low medium high"`
 }
 
 type AddCommentRequest struct {

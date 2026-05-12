@@ -121,6 +121,17 @@
 
         <div class="ticket-desc">{{ activeTicket?.description }}</div>
 
+        <!-- Смена приоритета администратором -->
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
+          <span style="font-size:12px;color:var(--text-muted);font-weight:600;">ПРИОРИТЕТ:</span>
+          <select v-model="editPriority" @change="changePriority" style="padding:5px 10px;border-radius:8px;border:1.5px solid var(--border);font-family:'Onest',sans-serif;font-size:12px;outline:none;">
+            <option value="low">Низкий</option>
+            <option value="medium">Средний</option>
+            <option value="high">Высокий</option>
+          </select>
+          <span v-if="prioritySaved" style="font-size:12px;color:#16a34a;">✓ Сохранено</span>
+        </div>
+
         <div style="margin-bottom:8px;display:flex;gap:8px;flex-wrap:wrap;">
           <span :class="['badge', `badge-${activeTicket?.priority}`]">{{ plabel(activeTicket?.priority) }}</span>
           <span :class="['badge', `badge-${activeTicket?.status}`]">{{ slabel(activeTicket?.status) }}</span>
@@ -171,7 +182,9 @@ const tickets   = ref([])
 const unread    = ref({})
 const ipLogs    = ref([])
 const loading   = ref(true)
-const chatModal = ref(false)
+const chatModal    = ref(false)
+const editPriority  = ref('medium')
+const prioritySaved = ref(false)
 const activeTicket = ref(null)
 const lastIP    = ref('—')
 const loginTime = ref('—')
@@ -222,10 +235,23 @@ function resetFilter() {
   load()
 }
 
+async function changePriority() {
+  if (!activeTicket.value) return
+  await adminApi.setPriority(activeTicket.value.id, editPriority.value)
+  activeTicket.value.priority = editPriority.value
+  // Обновляем в таблице тоже
+  const found = tickets.value.find(t => t.id === activeTicket.value.id)
+  if (found) found.priority = editPriority.value
+  prioritySaved.value = true
+  setTimeout(() => prioritySaved.value = false, 2000)
+}
+
 async function openChat(ticket) {
   try {
     const r = await adminApi.getTicket(ticket.id)
     activeTicket.value = r.data
+    editPriority.value  = r.data.priority || 'medium'
+    prioritySaved.value = false
     chatModal.value    = true
     // Сразу убираем бейдж для этой заявки — мы её прочитали
     const updated = { ...unread.value }

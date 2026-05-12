@@ -75,7 +75,7 @@ func (h *Handler) CreateTicket(c *gin.Context) {
 		Description:     req.Description,
 		InventoryNumber: req.InventoryNumber,
 		IPAddress:       req.IPAddress,
-		Priority:        req.Priority,
+		Priority:        models.PriorityMedium, // всегда Medium, меняет только админ
 		Status:          models.StatusOpen,
 	}
 	if err := h.tickets.Create(c.Request.Context(), t); err != nil {
@@ -108,6 +108,26 @@ func (h *Handler) UpdateTicket(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "updated"})
+}
+
+// AdminSetPriority — только администратор меняет приоритет
+func (h *Handler) AdminSetPriority(c *gin.Context) {
+	id := parseID(c)
+	var req models.AdminUpdatePriorityRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	_, err := h.tickets.GetByID(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "ticket not found"})
+		return
+	}
+	if err := h.tickets.SetPriority(c.Request.Context(), id, req.Priority); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "priority updated", "priority": req.Priority})
 }
 
 // ─── User: ответное сообщение в чате заявки ───────────────────────────────────

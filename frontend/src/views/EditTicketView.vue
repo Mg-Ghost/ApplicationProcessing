@@ -34,14 +34,7 @@
               <input v-model="f.inventory_number" :disabled="!canEdit"></div>
             <div class="field"><label>IP-адрес</label>
               <input v-model="f.ip_address" :disabled="!canEdit"></div>
-            <div class="field">
-              <label>Приоритет</label>
-              <select v-model="f.priority" :disabled="!canEdit">
-                <option value="low">Низкий</option>
-                <option value="medium">Средний</option>
-                <option value="high">Высокий</option>
-              </select>
-            </div>
+            <!-- Приоритет задаёт только администратор -->
             <div class="field form-full">
               <label>Описание</label>
               <textarea v-model="f.description" :disabled="!canEdit"></textarea>

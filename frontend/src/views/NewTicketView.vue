@@ -44,14 +44,7 @@
             <label>IP-адрес (при наличии)</label>
             <input v-model="f.ip_address" placeholder="192.168.1.45">
           </div>
-          <div class="field form-full">
-            <label>Приоритет *</label>
-            <select v-model="f.priority" required>
-              <option value="low">Низкий</option>
-              <option value="medium" selected>Средний</option>
-              <option value="high">Высокий</option>
-            </select>
-          </div>
+          <!-- Приоритет задаёт администратор после рассмотрения заявки -->
         </div>
 
         <p v-if="error" style="color:#dc2626;font-size:12px;margin-bottom:10px;">{{ error }}</p>
@@ -95,7 +88,6 @@ const f = reactive({
   description:'',
   inventory_number: '',
   ip_address: '',
-  priority:   'medium',
 })
 
 async function submit() {

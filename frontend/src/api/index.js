@@ -52,6 +52,7 @@ export const adminApi = {
   deleteTicket: id      => api.delete(`/admin/tickets/${id}`),
   closeTicket:  id      => api.patch(`/admin/tickets/${id}/close`),
   addComment:   (id, d) => api.post(`/admin/tickets/${id}/comment`, d),
+  setPriority:  (id, p) => api.patch(`/admin/tickets/${id}/priority`, { priority: p }),
   export:       params  => api.get('/admin/tickets/export', { params }),
   ipLogs:       ()      => api.get('/admin/ip-logs'),
 }

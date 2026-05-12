@@ -10,10 +10,18 @@
           <p>Создано {{ fmt(ticket.created_at) }} · {{ ticket.division }}</p>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-          <span :class="['badge', `badge-${ticket.priority}`]" style="font-size:13px;padding:5px 12px;">
-            {{ plabel(ticket.priority) }}
-            <span v-if="ticket.auto_escalated" title="Автоматически повышен">⚡</span>
-          </span>
+          <!-- Приоритет видит только администратор -->
+          <template v-if="isAdmin">
+            <span :class="['badge', `badge-${ticket.priority}`]" style="font-size:13px;padding:5px 12px;">
+              {{ plabel(ticket.priority) }}
+              <span v-if="ticket.auto_escalated" title="Автоматически повышен">⚡</span>
+            </span>
+          </template>
+          <template v-else>
+            <span v-if="ticket.auto_escalated" class="badge badge-high" style="font-size:13px;padding:5px 12px;">
+              Высокий приоритет ⚡
+            </span>
+          </template>
           <span :class="['badge', `badge-${ticket.status}`]" style="font-size:13px;padding:5px 12px;">
             {{ slabel(ticket.status) }}
           </span>

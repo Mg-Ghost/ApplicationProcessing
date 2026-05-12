@@ -23,12 +23,7 @@
         </div>
         <div class="lbl">Закрыто</div>
       </div>
-      <div class="stat-card">
-        <div class="num" style="background:var(--grad-danger);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">
-          {{ countByPriority('high') }}
-        </div>
-        <div class="lbl">Высокий приоритет</div>
-      </div>
+
     </div>
 
     <div class="actions-row">
@@ -55,7 +50,10 @@
             <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ t.description }}</td>
             <td>{{ t.division }}</td>
             <td>{{ formatDate(t.created_at) }}</td>
-            <td><span :class="['badge', `badge-${t.priority}`]">{{ priorityLabel(t.priority) }}</span></td>
+            <td>
+              <span v-if="t.auto_escalated" class="badge badge-high">Высокий ⚡</span>
+              <span v-else style="color:var(--text-muted);font-size:13px;">—</span>
+            </td>
             <td><span :class="['badge', `badge-${t.status}`]">{{ statusLabel(t.status) }}</span></td>
             <td>
               <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
@@ -116,7 +114,6 @@ const escalated = computed(() =>
 )
 
 function countByStatus(s)  { return tickets.value.filter(t => t.status === s).length }
-function countByPriority(p){ return tickets.value.filter(t => t.priority === p).length }
 function toggleFilter(s)   { filterStatus.value = filterStatus.value === s ? '' : s }
 
 // Открыть заявление — убрать бейдж сразу, перейти на страницу
@@ -156,7 +153,6 @@ async function closeTicket(id) {
 }
 
 function formatDate(d) { return new Date(d).toLocaleDateString('ru-RU') }
-function priorityLabel(p) { return { high:'Высокий ⚡', medium:'Средний', low:'Низкий' }[p] || p }
 function statusLabel(s)   { return { open:'Открыто', in_progress:'На рассмотрении', closed:'Закрыто', cancelled:'Отменено' }[s] || s }
 
 let pollInterval = null

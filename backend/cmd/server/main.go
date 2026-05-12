@@ -84,6 +84,7 @@ func main() {
 			admin.DELETE("/tickets/:id", h.AdminDeleteTicket)
 			admin.PATCH("/tickets/:id/close", h.AdminCloseTicket)
 			admin.POST("/tickets/:id/comment", h.AddComment)
+			admin.PATCH("/tickets/:id/priority", h.AdminSetPriority)
 			admin.GET("/ip-logs", h.GetIPLogs)
 			admin.GET("/unread-counts", h.UnreadCounts) // для админа
 		}
