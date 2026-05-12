@@ -349,7 +349,6 @@ onUnmounted(() => {
   clearInterval(chatPollInterval)
 })
 
-// Polling 2: когда открыт чат — обновляем сообщения каждые 5 сек
 function startChatPolling() {
   stopChatPolling()
   chatPollInterval = setInterval(async () => {
@@ -359,7 +358,6 @@ function startChatPolling() {
     }
     try {
       const r = await adminApi.getTicket(activeTicket.value.id)
-      // Обновляем только messages — не трогаем остальные поля чтобы не мигало
       if (r.data?.messages) {
         activeTicket.value = { ...activeTicket.value, messages: r.data.messages }
       }
