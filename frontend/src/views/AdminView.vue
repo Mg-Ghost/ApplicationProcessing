@@ -58,13 +58,14 @@
     <div class="table-wrap" style="margin-bottom:24px;">
       <table>
         <thead><tr>
-          <th>#</th><th>ФИО</th><th>Описание</th><th>Подразделение</th>
+          <th>#</th><th>ФИО</th><th>Категория</th><th>Описание</th><th>Подразделение</th>
           <th>Дата</th><th>Приоритет</th><th>Статус</th><th>Закрыл</th><th>Действия</th>
         </tr></thead>
         <tbody>
           <tr v-for="t in tickets" :key="t.id">
             <td><router-link :to="`/tickets/${t.id}`" style="font-weight:700;color:var(--accent);text-decoration:none;">#{{ t.id }}</router-link></td>
             <td>{{ t.first_name }} {{ t.last_name }}</td>
+            <td><span style="display:inline-block;padding:2px 7px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;font-size:11px;font-weight:600;color:var(--text-muted);">{{ t.category || '—' }}</span></td>
             <td class="desc-cell" :title="t.description">{{ t.description }}</td>
             <td>{{ t.division }}</td>
             <td>{{ fmt(t.created_at) }}</td>

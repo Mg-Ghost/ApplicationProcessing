@@ -38,6 +38,7 @@
             <div class="card-title" style="font-size:15px;">👤 Заявитель</div>
             <div class="info-grid">
               <div class="info-row"><span class="info-label">Имя</span><span>{{ ticket.first_name }} {{ ticket.last_name }}</span></div>
+              <div class="info-row"><span class="info-label">Категория</span><span style="font-weight:600;">{{ ticket.category || '—' }}</span></div>
               <div class="info-row"><span class="info-label">Телефон</span><span>{{ ticket.phone || '—' }}</span></div>
               <div class="info-row"><span class="info-label">Должность</span><span>{{ ticket.position || '—' }}</span></div>
               <div class="info-row"><span class="info-label">Подразделение</span><span>{{ ticket.division }}</span></div>

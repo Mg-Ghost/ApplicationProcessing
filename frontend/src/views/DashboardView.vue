@@ -41,13 +41,14 @@
     <div v-else class="table-wrap">
       <table>
         <thead><tr>
-          <th>#</th><th>Описание</th><th>Подразделение</th><th>Дата</th>
-          <th>Приоритет</th><th>Статус</th><th>Действия</th>
+          <th>#</th><th>Категория</th><th>Описание</th><th>Подразделение</th><th>Дата</th>
+          <th>Статус</th><th>Действия</th>
         </tr></thead>
         <tbody>
           <tr v-for="t in filtered" :key="t.id">
             <td><strong>#{{ t.id }}</strong></td>
-            <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ t.description }}</td>
+            <td><span class="category-tag">{{ t.category || '—' }}</span></td>
+            <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ t.description }}</td>
             <td>{{ t.division }}</td>
             <td>{{ formatDate(t.created_at) }}</td>
             <td>
@@ -182,6 +183,12 @@ onUnmounted(() => {
 .empty-msg a { color: var(--accent); }
 .btn-active-filter { background:var(--surface2); color:var(--text); border-color:var(--accent); }
 
+.category-tag {
+  display: inline-block; padding: 2px 8px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 6px; font-size: 11px; font-weight: 600;
+  color: var(--text-muted); white-space: nowrap;
+}
 .btn-with-badge {
   position: relative;
   display: inline-flex;

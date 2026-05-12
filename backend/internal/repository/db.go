@@ -86,6 +86,13 @@ CREATE TABLE IF NOT EXISTS ip_logs (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Добавляем category если не существует
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='tickets' AND column_name='category') THEN
+    ALTER TABLE tickets ADD COLUMN category TEXT NOT NULL DEFAULT '';
+  END IF;
+END $$;
+
 -- Добавляем поля закрытия если не существуют
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='tickets' AND column_name='closed_by_admin') THEN

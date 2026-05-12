@@ -94,6 +94,7 @@ type Ticket struct {
 	Position        string           `json:"position"`
 	Room            string           `json:"room"`
 	Division        string           `json:"division"`
+	Category        string           `json:"category"`
 	Description     string           `json:"description"`
 	InventoryNumber string           `json:"inventory_number"`
 	IPAddress       string           `json:"ip_address"`
@@ -115,6 +116,7 @@ type CreateTicketRequest struct {
 	Position        string `json:"position"         binding:"required"`
 	Room            string `json:"room"             binding:"required"`
 	Division        string `json:"division"         binding:"required"`
+	Category        string `json:"category"         binding:"required"`
 	Description     string `json:"description"      binding:"required,min=10"`
 	InventoryNumber string `json:"inventory_number"`
 	IPAddress       string `json:"ip_address"`

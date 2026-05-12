@@ -72,10 +72,11 @@ func (h *Handler) CreateTicket(c *gin.Context) {
 		Position:        req.Position,
 		Room:            req.Room,
 		Division:        req.Division,
+		Category:        req.Category,
 		Description:     req.Description,
 		InventoryNumber: req.InventoryNumber,
 		IPAddress:       req.IPAddress,
-		Priority:        models.PriorityMedium, // всегда Medium, меняет только админ
+		Priority:        models.PriorityMedium,
 		Status:          models.StatusOpen,
 	}
 	if err := h.tickets.Create(c.Request.Context(), t); err != nil {

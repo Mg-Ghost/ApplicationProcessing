@@ -17,11 +17,11 @@ func (r *TicketRepo) Create(ctx context.Context, t *models.Ticket) error {
 	return r.db.QueryRow(ctx,
 		`INSERT INTO tickets
 		 (user_id, first_name, last_name, phone, position, room, division,
-		  description, inventory_number, ip_address, priority, status)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+		  category, description, inventory_number, ip_address, priority, status)
+		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
 		 RETURNING id, created_at, updated_at`,
 		t.UserID, t.FirstName, t.LastName, t.Phone, t.Position, t.Room,
-		t.Division, t.Description, t.InventoryNumber, t.IPAddress, t.Priority, t.Status,
+		t.Division, t.Category, t.Description, t.InventoryNumber, t.IPAddress, t.Priority, t.Status,
 	).Scan(&t.ID, &t.CreatedAt, &t.UpdatedAt)
 }
 
@@ -29,13 +29,13 @@ func (r *TicketRepo) GetByID(ctx context.Context, id int64) (*models.Ticket, err
 	t := &models.Ticket{}
 	err := r.db.QueryRow(ctx,
 		`SELECT id, user_id, first_name, last_name, phone, position, room, division,
-		 description, inventory_number, ip_address, priority, status,
+		 category, description, inventory_number, ip_address, priority, status,
 		 admin_comment, auto_escalated, created_at, updated_at,
 		 closed_by_admin, closed_by_role
 		 FROM tickets WHERE id=$1`, id,
 	).Scan(
 		&t.ID, &t.UserID, &t.FirstName, &t.LastName, &t.Phone, &t.Position,
-		&t.Room, &t.Division, &t.Description, &t.InventoryNumber, &t.IPAddress,
+		&t.Room, &t.Division, &t.Category, &t.Description, &t.InventoryNumber, &t.IPAddress,
 		&t.Priority, &t.Status, &t.AdminComment, &t.AutoEscalated,
 		&t.CreatedAt, &t.UpdatedAt, &t.ClosedByAdmin, &t.ClosedByRole,
 	)
@@ -48,7 +48,7 @@ func (r *TicketRepo) GetByID(ctx context.Context, id int64) (*models.Ticket, err
 func (r *TicketRepo) ListByUser(ctx context.Context, userID int64) ([]*models.Ticket, error) {
 	rows, err := r.db.Query(ctx,
 		`SELECT id, user_id, first_name, last_name, phone, position, room, division,
-		 description, inventory_number, ip_address, priority, status,
+		 category, description, inventory_number, ip_address, priority, status,
 		 admin_comment, auto_escalated, created_at, updated_at,
 		 closed_by_admin, closed_by_role
 		 FROM tickets WHERE user_id=$1 ORDER BY created_at DESC`, userID)
@@ -91,7 +91,7 @@ func (r *TicketRepo) ListAll(ctx context.Context, f models.TicketFilter) ([]*mod
 
 	q := fmt.Sprintf(
 		`SELECT id, user_id, first_name, last_name, phone, position, room, division,
-		 description, inventory_number, ip_address, priority, status,
+		 category, description, inventory_number, ip_address, priority, status,
 		 admin_comment, auto_escalated, created_at, updated_at,
 		 closed_by_admin, closed_by_role
 		 FROM tickets WHERE %s ORDER BY %s %s`,
@@ -176,7 +176,7 @@ func scanTickets(rows interface{ Next() bool; Scan(...any) error }) ([]*models.T
 		t := &models.Ticket{}
 		if err := rows.Scan(
 			&t.ID, &t.UserID, &t.FirstName, &t.LastName, &t.Phone, &t.Position,
-			&t.Room, &t.Division, &t.Description, &t.InventoryNumber, &t.IPAddress,
+			&t.Room, &t.Division, &t.Category, &t.Description, &t.InventoryNumber, &t.IPAddress,
 			&t.Priority, &t.Status, &t.AdminComment, &t.AutoEscalated,
 			&t.CreatedAt, &t.UpdatedAt, &t.ClosedByAdmin, &t.ClosedByRole,
 		); err != nil {

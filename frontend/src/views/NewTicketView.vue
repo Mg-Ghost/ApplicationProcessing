@@ -33,6 +33,20 @@
         <div class="section-label">Описание проблемы</div>
         <div class="form-grid">
           <div class="field form-full">
+            <label>Категория *</label>
+            <select v-model="f.category" required>
+              <option value="">Выберите категорию...</option>
+              <option>РМИС</option>
+              <option>ПАРУС</option>
+              <option>РУЧНОЙ СКАНЕР</option>
+              <option>ПРИНТЕР</option>
+              <option>КОМП</option>
+              <option>КОНСУЛЬТАНТ</option>
+              <option>ЭЦП</option>
+              <option>Другое</option>
+            </select>
+          </div>
+          <div class="field form-full">
             <label>Описание * (укажите фирму компьютера)</label>
             <textarea v-model="f.description" placeholder="Опишите проблему подробно. Укажите марку и модель оборудования (Dell Optiplex, HP EliteDesk и т.д.)" minlength="10" required></textarea>
           </div>
@@ -85,6 +99,7 @@ const f = reactive({
   position:   '',
   room:       '',
   division:   auth.user?.division   || '',
+  category:   '',
   description:'',
   inventory_number: '',
   ip_address: '',
