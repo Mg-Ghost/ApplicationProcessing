@@ -409,7 +409,7 @@ function stopChatPolling() {
   box-shadow: 0 0 0 2px rgba(79,124,255,.2);
 }
 
-/* Modal */
+/* Modal  */
 .modal-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,.4);
   display: flex; align-items: center; justify-content: center;
