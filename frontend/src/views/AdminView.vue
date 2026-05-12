@@ -89,8 +89,8 @@
             <td>
               <div style="display:flex;gap:4px;flex-wrap:wrap;">
                 <router-link :to="`/tickets/${t.id}`" class="btn btn-ghost btn-sm" title="Просмотр">👁</router-link>
-                <span class="btn-with-badge">
-                  <button class="btn btn-primary btn-sm" @click="openChat(t)" title="Открыть переписку">💬 Ответить</button>
+                  <span class="btn-with-badge">
+                  <button class="btn btn-primary btn-sm" style="padding: 3.5px 7.5px;" @click="openChat(t)" title="Открыть переписку">💬 Ответить</button>
                   <span v-if="unread[t.id]" class="unread-badge">{{ unread[t.id] }}</span>
                 </span>
                 <button v-if="t.status !== 'closed'" class="btn btn-ghost btn-sm" @click="closeT(t.id)" title="Закрыть">✓</button>
