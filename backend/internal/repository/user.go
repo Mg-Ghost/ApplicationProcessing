@@ -32,11 +32,12 @@ func (r *UserRepo) GetByID(ctx context.Context, id int64) (*models.User, error) 
 	return u, nil
 }
 
-func (r *UserRepo) GetByName(ctx context.Context, firstName string) (*models.User, error) {
+// GetByFullName ищет по имени + фамилии чтобы избежать коллизий
+func (r *UserRepo) GetByFullName(ctx context.Context, firstName, lastName string) (*models.User, error) {
 	u := &models.User{}
 	err := r.db.QueryRow(ctx,
 		`SELECT id, first_name, last_name, division, password_hash, role, created_at
-		 FROM users WHERE first_name=$1 LIMIT 1`, firstName,
+		 FROM users WHERE first_name=$1 AND last_name=$2 LIMIT 1`, firstName, lastName,
 	).Scan(&u.ID, &u.FirstName, &u.LastName, &u.Division, &u.PasswordHash, &u.Role, &u.CreatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("user not found: %w", err)

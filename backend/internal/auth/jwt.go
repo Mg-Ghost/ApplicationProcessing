@@ -51,7 +51,15 @@ func ParseToken(tokenStr string) (*Claims, error) {
 func jwtSecret() string {
 	s := os.Getenv("JWT_SECRET")
 	if s == "" {
-		return "change_me_in_production_32chars!!"
+		// В продакшене ОБЯЗАТЕЛЬНО задать JWT_SECRET в .env
+		// Дефолт только для локальной разработки
+		if os.Getenv("GIN_MODE") == "release" {
+			panic("JWT_SECRET must be set in production (GIN_MODE=release)")
+		}
+		return "local_dev_secret_change_in_prod!!"
+	}
+	if len(s) < 32 {
+		panic("JWT_SECRET must be at least 32 characters long")
 	}
 	return s
 }

@@ -62,7 +62,7 @@ func (h *Handler) Login(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	u, err := h.users.GetByName(c.Request.Context(), req.FirstName)
+	u, err := h.users.GetByFullName(c.Request.Context(), req.FirstName, req.LastName)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
 		return

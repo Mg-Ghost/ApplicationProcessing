@@ -39,14 +39,15 @@ type User struct {
 }
 
 type RegisterRequest struct {
-	FirstName string `json:"first_name" binding:"required,min=2"`
-	LastName  string `json:"last_name"  binding:"required,min=2"`
+	FirstName string `json:"first_name" binding:"required,min=2,max=50"`
+	LastName  string `json:"last_name"  binding:"required,min=2,max=50"`
 	Division  string `json:"division"   binding:"required"`
 	Password  string `json:"password"   binding:"required,min=6"`
 }
 
 type LoginRequest struct {
 	FirstName string `json:"first_name" binding:"required"`
+	LastName  string `json:"last_name"  binding:"required"`
 	Password  string `json:"password"   binding:"required"`
 }
 
@@ -117,7 +118,7 @@ type CreateTicketRequest struct {
 	Room            string `json:"room"             binding:"required"`
 	Division        string `json:"division"         binding:"required"`
 	Category        string `json:"category"         binding:"required"`
-	Description     string `json:"description"      binding:"required,min=10"`
+	Description     string `json:"description"      binding:"required,min=10,max=2000"`
 	InventoryNumber string `json:"inventory_number"`
 	IPAddress       string `json:"ip_address"`
 	// Приоритет задаёт только администратор, пользователь всегда получает Medium

@@ -41,7 +41,10 @@
       <!-- LOGIN -->
       <form v-else-if="tab==='login'" @submit.prevent="doLogin" class="auth-form">
         <h2 class="card-title">Добро пожаловать</h2>
-        <div class="field"><label>Имя</label><input v-model="log.first_name" placeholder="Иван" required></div>
+        <div class="form-grid">
+          <div class="field"><label>Имя</label><input v-model="log.first_name" placeholder="Иван" required></div>
+          <div class="field"><label>Фамилия</label><input v-model="log.last_name" placeholder="Петров" required></div>
+        </div>
         <div class="field"><label>Пароль</label><input type="password" v-model="log.password" required></div>
         <p v-if="error" class="error-msg">{{ error }}</p>
         <button type="submit" class="btn btn-primary btn-full" :disabled="loading">
@@ -87,7 +90,7 @@ const divisions = [
 ]
 
 const reg = reactive({ first_name:'', last_name:'', division:'', password:'', confirm:'' })
-const log = reactive({ first_name:'', password:'' })
+const log = reactive({ first_name:'', last_name:'', password:'' })
 const adm = reactive({ login:'', password:'', secret_key:'' })
 
 async function doRegister() {
@@ -106,7 +109,7 @@ async function doLogin() {
   error.value = ''
   loading.value = true
   try {
-    await auth.login({ first_name: log.first_name, password: log.password })
+    await auth.login({ first_name: log.first_name, last_name: log.last_name, password: log.password })
     router.push('/dashboard')
   } catch(e) {
     error.value = e.response?.data?.error || 'Неверные данные'

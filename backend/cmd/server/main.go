@@ -37,8 +37,13 @@ func main() {
 
 	r := gin.Default()
 
+	// CORS: читаем разрешённые origins из env, fallback на localhost
+	allowedOrigins := []string{"http://localhost:5173", "http://localhost:3000"}
+	if envOrigin := os.Getenv("CORS_ALLOWED_ORIGIN"); envOrigin != "" {
+		allowedOrigins = append(allowedOrigins, envOrigin)
+	}
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173", "http://localhost:3000"},
+		AllowOrigins:     allowedOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		AllowCredentials: true,
@@ -49,6 +54,7 @@ func main() {
 	api := r.Group("/api")
 	{
 		auth := api.Group("/auth")
+		auth.Use(middleware.RateLimit()) // защита от брутфорса
 		{
 			auth.POST("/register", h.Register)
 			auth.POST("/login", h.Login)
