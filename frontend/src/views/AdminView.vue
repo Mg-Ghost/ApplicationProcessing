@@ -196,9 +196,15 @@ const filter = reactive({
 })
 
 const divisions = [
-  'ГКБ №1 — Хирургия', 'ГКБ №1 — Терапия', 'ГКБ №1 — Кардиология',
-  'ГКБ №2 — Хирургия', 'ГКБ №2 — Неврология', 'ГКБ №3 — Реанимация',
-  'ГКБ №3 — Педиатрия', 'ГКБ №4 — Онкология',
+  'ДС при ПВ№3', 'ДС при ПВ№3 неврология', 'Поликлиника взрослых №3',
+  'Отд. поликлиника взрослых №3', 'Детская поликлиника №2', 'Детская поликлиника №3',
+  'Детская поликлиника №4', 'Пульмоцентр', 'Центр здоровья', 'ПСЦ Неврология',
+  'Колопроктология', 'Хирургия №1', 'Хирургия №2', 'ДИБО', 'Урология',
+  'Гинекология', 'Гастро отделение', 'Неврология', 'Приемное отделение',
+  'Терапия', 'Реанимация', 'Пульмо отделение', 'ЛОР', 'Кабинет трансфузии',
+  'КДЛ', 'Операционный блок', 'Рентген отделение', 'Физиотерапия', 'ЦСО',
+  'Эндоскопическое отделение', 'ФД и УЗИ', 'Отделение реабилитации',
+  'Аптека', 'Администрация', 'Баклаборатория', 'Школа сахарного диабета',
 ]
 
 async function load() {
@@ -349,6 +355,7 @@ onUnmounted(() => {
   clearInterval(chatPollInterval)
 })
 
+// Polling 2: когда открыт чат — обновляем сообщения каждые 5 сек
 function startChatPolling() {
   stopChatPolling()
   chatPollInterval = setInterval(async () => {
@@ -358,6 +365,7 @@ function startChatPolling() {
     }
     try {
       const r = await adminApi.getTicket(activeTicket.value.id)
+      // Обновляем только messages — не трогаем остальные поля чтобы не мигало
       if (r.data?.messages) {
         activeTicket.value = { ...activeTicket.value, messages: r.data.messages }
       }
@@ -409,7 +417,7 @@ function stopChatPolling() {
   box-shadow: 0 0 0 2px rgba(79,124,255,.2);
 }
 
-/* Modal  */
+/* Modal */
 .modal-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,.4);
   display: flex; align-items: center; justify-content: center;
