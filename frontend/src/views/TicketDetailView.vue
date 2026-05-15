@@ -138,6 +138,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ticketsApi, adminApi } from '@/api'
 import { useAuthStore } from '@/stores/auth'
 import TicketChat from '@/components/shared/TicketChat.vue'
+import * as XLSX from 'xlsx'
 
 const route  = useRoute()
 const router = useRouter()
@@ -165,9 +166,8 @@ onMounted(async () => {
   loading.value = false
 })
 
-async function exportXLSX() {
+function exportXLSX() {
   if (!ticket.value) return
-  const { default: XLSX } = await import('xlsx')
   const t = ticket.value
 
   // Основная информация
