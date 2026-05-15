@@ -81,8 +81,9 @@
           </div>
 
           <!-- Кнопки действий -->
-          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
             <button class="btn btn-ghost" @click="$router.back()">← Назад</button>
+            <button class="btn btn-ghost" @click="exportXLSX" title="Экспорт в XLSX">⬇ XLSX</button>
 
             <!-- Кнопки пользователя -->
             <template v-if="!isAdmin">
@@ -163,6 +164,64 @@ onMounted(async () => {
   await reload()
   loading.value = false
 })
+
+async function exportXLSX() {
+  if (!ticket.value) return
+  const { default: XLSX } = await import('xlsx')
+  const t = ticket.value
+
+  // Основная информация
+  const info = [
+    ['Поле', 'Значение'],
+    ['№ Заявления', t.id],
+    ['Дата создания', fmtFull(t.created_at)],
+    ['Дата обновления', fmtFull(t.updated_at)],
+    ['Статус', slabel(t.status)],
+    ['Приоритет', plabel(t.priority)],
+    ['', ''],
+    ['ЗАЯВИТЕЛЬ', ''],
+    ['Имя', t.first_name],
+    ['Фамилия', t.last_name],
+    ['Телефон', t.phone],
+    ['Должность', t.position],
+    ['Подразделение', t.division],
+    ['Кабинет', t.room],
+    ['', ''],
+    ['ПРОБЛЕМА', ''],
+    ['Категория', t.category || '—'],
+    ['Описание', t.description],
+    ['Инвентарный номер', t.inventory_number || '—'],
+    ['IP-адрес', t.ip_address || '—'],
+  ]
+
+  if (t.closed_by_admin) {
+    info.push(['', ''])
+    info.push(['Закрыл', `${t.closed_by_role === 'admin' ? 'Администратор' : 'Пользователь'}: ${t.closed_by_admin}`])
+  }
+
+  const ws1 = XLSX.utils.aoa_to_sheet(info)
+  ws1['!cols'] = [{ wch: 22 }, { wch: 55 }]
+
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws1, 'Заявление')
+
+  // Переписка если есть
+  if (t.messages && t.messages.length) {
+    const msgs = [['Дата', 'Автор', 'Сообщение']]
+    t.messages.forEach(m => {
+      msgs.push([
+        fmtFull(m.created_at),
+        m.author_name,
+        m.text
+      ])
+    })
+    const ws2 = XLSX.utils.aoa_to_sheet(msgs)
+    ws2['!cols'] = [{ wch: 18 }, { wch: 20 }, { wch: 60 }]
+    XLSX.utils.book_append_sheet(wb, ws2, 'Переписка')
+  }
+
+  XLSX.writeFile(wb, `ticket_${t.id}.xlsx`)
+}
 
 async function doCancel() {
   if (!confirm('Отменить заявление?')) return
