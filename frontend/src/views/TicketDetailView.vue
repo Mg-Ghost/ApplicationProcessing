@@ -205,7 +205,6 @@ function exportXLSX() {
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws1, 'Заявление')
 
-  // Переписка если есть
   if (t.messages && t.messages.length) {
     const msgs = [['Дата', 'Автор', 'Сообщение']]
     t.messages.forEach(m => {
